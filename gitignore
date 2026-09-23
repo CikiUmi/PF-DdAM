@@ -8,6 +8,9 @@ local.properties
 # Log/OS Files
 *.log
 
+# VS Code
+.vscode/
+
 # Android Studio generated files and folders
 captures/
 .externalNativeBuild/
@@ -19,7 +22,7 @@ output-metadata.json
 
 # IntelliJ
 *.iml
-.idea/
+.idea
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
@@ -27,6 +30,7 @@ render.experimental.xml
 .idea/tasks.xml
 .idea/datasources.xml
 .idea/dataSources.ids
+.idea/
 
 # Keystore files
 *.jks
