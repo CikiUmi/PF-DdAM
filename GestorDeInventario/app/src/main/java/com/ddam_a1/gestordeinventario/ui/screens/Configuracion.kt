@@ -22,7 +22,7 @@ fun PantallaConfiguracion(
     onUsuarios: () -> Unit,
     onAtras: () -> Unit,
     onSalir: () -> Unit
-) -> Unit) {
+) {
     EstadoApp.version
     val logs = AlmacenamientoLocal.consultarHistorial().reversed()
 
