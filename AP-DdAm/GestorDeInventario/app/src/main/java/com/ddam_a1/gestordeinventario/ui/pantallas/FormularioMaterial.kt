@@ -14,11 +14,10 @@ import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
 
 /** Pantalla 8 · Nuevo / editar material (RF1, RF2, RF18, RF19, RF22). */
 @Composable
-fun PantallaFormularioMaterial(nav: Navegador, id: String?) {
+fun PantallaFormularioMaterial(id: String?, onAtras: () -> Unit) {
     val m = id?.let { InventarioMateriales.obtenerMaterialPorId(it) }
     var nombre by remember { mutableStateOf(m?.nombre ?: "") }
     var unidad by remember { mutableStateOf(m?.unidadMedida ?: "kg") }
@@ -29,7 +28,7 @@ fun PantallaFormularioMaterial(nav: Navegador, id: String?) {
     var dias by remember { mutableStateOf(m?.diasAvisoCaducidad?.toString() ?: "7") }
     val valido = nombre.isNotBlank() && unidad.isNotBlank() && costo.toDoubleOrNull() != null
 
-    Marco(barra = { BarraSuperior(if (m == null) "Nuevo material" else "Editar material", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior(if (m == null) "Nuevo material" else "Editar material", onAtras = { onAtras() }) }) {
         item { CampoTexto(nombre, "Nombre", { nombre = it }) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -67,7 +66,7 @@ fun PantallaFormularioMaterial(nav: Navegador, id: String?) {
                 AlmacenamientoLocal.registrarLog(hoy(), "manual",
                     (if (m == null) "Alta" else "Edición") + " de material ${destino.nombre}")
                 EstadoApp.datosCambiaron()
-                nav.volver()
+                onAtras()
             }
         }
     }

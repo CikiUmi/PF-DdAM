@@ -2,27 +2,25 @@ package com.ddam_a1.gestordeinventario.ui.pantallas
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.ui.navegacion.BarraInferior
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.componentes.DestinoBarra
 
 private enum class FiltroInv { TODOS, BAJOS, CADUCAN }
 
 /** Pantalla 6 · Inventario de materiales (RF20). */
 @Composable
-fun PantallaInventario(nav: Navegador) {
+fun PantallaInventario(
+    onMaterial: (String) -> Unit,
+    onNuevoMaterial: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit
+) {
     EstadoApp.version
     var texto by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf(FiltroInv.TODOS) }
@@ -37,7 +35,7 @@ fun PantallaInventario(nav: Navegador) {
 
     Marco(
         barra = { BarraSuperior("Inventario", "${todos.size} materiales") },
-        pie = { BarraInferior(nav.actual) { nav.irARaiz(it) } }
+        pie = { BarraInferior(DestinoBarra.INVENTARIO, onDestino) }
     ) {
         item { BarraBusqueda(texto, "Buscar material") { texto = it } }
         item {
@@ -60,12 +58,12 @@ fun PantallaInventario(nav: Navegador) {
                     "${cant(m.cantidadDisponible)} ${m.unidadMedida}",
                     if (bajo) "stock bajo" else null,
                     if (bajo) MaterialTheme.colorScheme.error else MaterialTheme.coloresExtra.correct.color
-                ) { nav.ir(Ruta.DetalleMaterial(m.id)) }
+                ) { onMaterial(m.id) }
             }
         }
         item {
             Spacer(Modifier.height(4.dp))
-            BotonPrincipal("Nuevo material") { nav.ir(Ruta.FormularioMaterial(null)) }
+            BotonPrincipal("Nuevo material") { onNuevoMaterial() }
         }
     }
 }

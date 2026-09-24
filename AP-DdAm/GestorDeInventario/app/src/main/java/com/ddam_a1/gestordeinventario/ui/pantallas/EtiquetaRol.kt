@@ -20,8 +20,6 @@ import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelo.Rol
 import com.ddam_a1.gestordeinventario.datos.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal

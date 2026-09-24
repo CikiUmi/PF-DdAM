@@ -14,23 +14,26 @@ import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 
 /** Pantalla 7 · Detalle de material (RF3, RF9, RF18, RF19). */
 @Composable
-fun PantallaDetalleMaterial(nav: Navegador, id: String) {
+fun PantallaDetalleMaterial(
+    id: String,
+    onProducto: (String) -> Unit,
+    onEditar: () -> Unit,
+    onAtras: () -> Unit
+) {
     EstadoApp.version
     val m = InventarioMateriales.obtenerMaterialPorId(id)
     var nuevaFecha by remember { mutableStateOf("") }
 
-    if (m == null) { nav.volver(); return }
+    if (m == null) { onAtras(); return }
     val bajo = InventarioMateriales.esStockBajo(m)
     val usadoEn = CatalogoProductos.obtenerTodos().filter { p -> p.receta.any { it.materialId == id } }
 
     Marco(barra = {
-        BarraSuperior(m.nombre, onAtras = { nav.volver() }) {
-            BotonIcono(Iconos.Editar, "Editar", { nav.ir(Ruta.FormularioMaterial(id)) })
+        BarraSuperior(m.nombre, onAtras = { onAtras() }) {
+            BotonIcono(Iconos.Editar, "Editar", { onEditar() })
         }
     }) {
         item {
@@ -90,7 +93,7 @@ fun PantallaDetalleMaterial(nav: Navegador, id: String) {
                 val p = usadoEn[i]
                 val ing = p.receta.first { it.materialId == id }
                 FilaLista(p.nombre, "${cant(ing.cantidadUsada)} ${m.unidadMedida} por pieza") {
-                    nav.ir(Ruta.DetalleProducto(p.id))
+                    onProducto(p.id)
                 }
             }
         }

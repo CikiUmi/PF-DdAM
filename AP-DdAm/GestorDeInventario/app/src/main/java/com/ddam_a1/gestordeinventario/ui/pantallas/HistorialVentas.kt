@@ -1,17 +1,9 @@
 package com.ddam_a1.gestordeinventario.ui.pantallas
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
 import com.ddam_a1.gestordeinventario.modelo.Periodo
@@ -19,16 +11,13 @@ import com.ddam_a1.gestordeinventario.datos.RendimientoNegocio
 import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.datos.ErrorVenta
-import com.ddam_a1.gestordeinventario.datos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.datos.Ventas
-import com.ddam_a1.gestordeinventario.ui.navegacion.BarraInferior
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.componentes.DestinoBarra
 
 /** Pantalla 15 · Historial de ventas (RF12). */
 @Composable
-fun PantallaHistorialVentas(nav: Navegador) {
+fun PantallaHistorialVentas(onNuevaVenta: () -> Unit, onDestino: (DestinoBarra) -> Unit) {
     EstadoApp.version
     var periodo by remember { mutableStateOf(Periodo.DIARIO) }
     val todas = Ventas.obtenerHistorialVentas().reversed()
@@ -36,7 +25,7 @@ fun PantallaHistorialVentas(nav: Navegador) {
 
     Marco(
         barra = { BarraSuperior("Ventas", "${filtradas.size} en el período") },
-        pie = { BarraInferior(nav.actual) { nav.irARaiz(it) } }
+        pie = { BarraInferior(DestinoBarra.VENTAS, onDestino) }
     ) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -73,7 +62,7 @@ fun PantallaHistorialVentas(nav: Navegador) {
         }
         item {
             Spacer(Modifier.height(4.dp))
-            BotonPrincipal("Nueva venta") { nav.ir(Ruta.NuevaVenta) }
+            BotonPrincipal("Nueva venta") { onNuevaVenta() }
         }
     }
 }

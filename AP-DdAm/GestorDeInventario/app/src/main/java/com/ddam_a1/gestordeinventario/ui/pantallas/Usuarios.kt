@@ -20,8 +20,6 @@ import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelo.Rol
 import com.ddam_a1.gestordeinventario.datos.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
@@ -39,7 +37,7 @@ import com.ddam_a1.gestordeinventario.datos.Ventas
 
 /** Pantalla 17 · Usuarios (RF26, RF27). */
 @Composable
-fun PantallaUsuarios(nav: Navegador) {
+fun PantallaUsuarios(onPermisos: () -> Unit, onAtras: () -> Unit) {
     EstadoApp.version
     val lista = Usuarios.obtenerTodos()
     var nombre by remember { mutableStateOf("") }
@@ -49,8 +47,8 @@ fun PantallaUsuarios(nav: Navegador) {
     val esAdmin = quien != null && quien.rol == Rol.ADMINISTRADOR
 
     Marco(barra = {
-        BarraSuperior("Equipo", lista.size.toString() + " usuarios", onAtras = { nav.volver() }) {
-            BotonIcono(Iconos.Candado, "Permisos", { nav.ir(Ruta.Permisos) })
+        BarraSuperior("Equipo", lista.size.toString() + " usuarios", onAtras = { onAtras() }) {
+            BotonIcono(Iconos.Candado, "Permisos", { onPermisos() })
         }
     }) {
         items(lista.size) { i ->

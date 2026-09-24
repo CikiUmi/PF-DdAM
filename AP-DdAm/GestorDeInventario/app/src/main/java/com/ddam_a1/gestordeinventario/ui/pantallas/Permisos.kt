@@ -20,8 +20,6 @@ import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelo.Rol
 import com.ddam_a1.gestordeinventario.datos.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
@@ -40,7 +38,7 @@ import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
 /** Pantalla 18 · Permisos por rol (RF25). */
 @Composable
-fun PantallaPermisos(nav: Navegador) {
+fun PantallaPermisos(onAtras: () -> Unit) {
     var rolElegido by remember { mutableStateOf(Rol.ENCARGADO) }
     val acciones = listOf(
         "registrar_venta" to "Registrar ventas",
@@ -49,7 +47,7 @@ fun PantallaPermisos(nav: Navegador) {
         "exportar" to "Exportar datos"
     )
 
-    Marco(barra = { BarraSuperior("Permisos por rol", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior("Permisos por rol", onAtras = { onAtras() }) }) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Rol.values().forEach { r ->

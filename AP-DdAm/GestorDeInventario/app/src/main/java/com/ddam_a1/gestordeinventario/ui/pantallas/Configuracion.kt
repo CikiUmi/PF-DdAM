@@ -20,8 +20,6 @@ import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelo.Rol
 import com.ddam_a1.gestordeinventario.datos.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
@@ -39,18 +37,23 @@ import com.ddam_a1.gestordeinventario.datos.Ventas
 
 /** Pantalla 19 · Configuración. */
 @Composable
-fun PantallaConfiguracion(nav: Navegador, onSalir: () -> Unit) {
+fun PantallaConfiguracion(
+    onExportar: () -> Unit,
+    onUsuarios: () -> Unit,
+    onAtras: () -> Unit,
+    onSalir: () -> Unit
+) -> Unit) {
     EstadoApp.version
     val logs = AlmacenamientoLocal.consultarHistorial().reversed()
 
-    Marco(barra = { BarraSuperior("Configuración", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior("Configuración", onAtras = { onAtras() }) }) {
         item { EncabezadoSeccion("Negocio") }
         item {
             FilaLista(
                 titulo = "Equipo y permisos",
                 subtitulo = if (Usuarios.esModoEquipo())
                     "Modo equipo · " + Usuarios.obtenerTodos().size + " usuarios" else "Modo individual",
-                onClick = { nav.ir(Ruta.Usuarios) }
+                onClick = { onUsuarios() }
             )
         }
         item { EncabezadoSeccion("Datos") }
@@ -58,7 +61,7 @@ fun PantallaConfiguracion(nav: Navegador, onSalir: () -> Unit) {
             FilaLista(
                 titulo = "Exportar datos",
                 subtitulo = "SQL, .xlsx o .csv con contraseña",
-                onClick = { nav.ir(Ruta.Exportar) }
+                onClick = { onExportar() }
             )
         }
         item { EncabezadoSeccion("Historial de cambios · " + logs.size) }

@@ -22,12 +22,10 @@ import com.ddam_a1.gestordeinventario.ui.theme.*
 import com.ddam_a1.gestordeinventario.datos.ErrorVenta
 import com.ddam_a1.gestordeinventario.datos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.datos.Ventas
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 
 /** Pantalla 14 · Registrar venta (RF12, RF13, RF14). */
 @Composable
-fun PantallaNuevaVenta(nav: Navegador) {
+fun PantallaNuevaVenta(onVentaRegistrada: () -> Unit, onAtras: () -> Unit) {
     EstadoApp.version
     val ticket = remember { mutableStateMapOf<String, Int>() }
     var buscar by remember { mutableStateOf("") }
@@ -40,7 +38,7 @@ fun PantallaNuevaVenta(nav: Navegador) {
     }
     val piezas = ticket.values.sum()
 
-    Marco(barra = { BarraSuperior("Nueva venta", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior("Nueva venta", onAtras = { onAtras() }) }) {
         item { BarraBusqueda(buscar, "Agregar producto al ticket") { buscar = it } }
         if (productos.isEmpty()) {
             item { EstadoVacio("Sin productos", "Agrega productos al catálogo primero") }
@@ -86,13 +84,13 @@ fun PantallaNuevaVenta(nav: Navegador) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.weight(1f)) { BotonSecundario("Cancelar") { nav.volver() } }
+                Box(Modifier.weight(1f)) { BotonSecundario("Cancelar") { onAtras() } }
                 Box(Modifier.weight(2f)) {
                     BotonPrincipal("Confirmar venta", habilitado = ticket.isNotEmpty()) {
                         when (val r = Ventas.registrarVenta(hoy(), ticket.map { it.key to it.value })) {
                             is ResultadoVenta.Exito -> {
                                 EstadoApp.datosCambiaron()
-                                nav.irARaiz(Ruta.HistorialVentas)
+                                onVentaRegistrada()
                             }
                             is ResultadoVenta.Fallo -> error = when (r.motivo) {
                                 ErrorVenta.MATERIALES_INSUFICIENTES -> "No alcanzan los materiales para todo el ticket."

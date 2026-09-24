@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
@@ -16,13 +15,20 @@ import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
 import com.ddam_a1.gestordeinventario.datos.Ventas
-import com.ddam_a1.gestordeinventario.ui.navegacion.BarraInferior
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.componentes.DestinoBarra
 
 /** Pantalla 4 · Menú principal (RF21, RF23). */
 @Composable
-fun PantallaInicio(nav: Navegador) {
+fun PantallaInicio(
+    onAvisos: () -> Unit,
+    onConfiguracion: () -> Unit,
+    onEstadisticas: () -> Unit,
+    onNuevaVenta: () -> Unit,
+    onInventario: () -> Unit,
+    onCatalogo: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit
+) {
     EstadoApp.version
     val fecha = hoy()
     val ventas = Ventas.obtenerHistorialVentas()
@@ -33,19 +39,19 @@ fun PantallaInicio(nav: Navegador) {
     Marco(
         barra = {
             BarraSuperior("Inicio", EstadoApp.usuario?.nombreUsuario) {
-                BotonIcono(Iconos.Campana, "Avisos", { nav.ir(Ruta.Avisos) }, conPunto = avisos.isNotEmpty())
-                BotonIcono(Iconos.Ajustes, "Configuración", { nav.ir(Ruta.Configuracion) })
+                BotonIcono(Iconos.Campana, "Avisos", { onAvisos() }, conPunto = avisos.isNotEmpty())
+                BotonIcono(Iconos.Ajustes, "Configuración", { onConfiguracion() })
             }
         },
-        pie = { BarraInferior(nav.actual) { nav.irARaiz(it) } }
+        pie = { BarraInferior(DestinoBarra.INICIO, onDestino) }
     ) {
         if (avisos.isNotEmpty()) {
             item {
                 BannerAviso("${avisos.size} avisos del inventario",
-                    avisos.first().mensaje, MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer) { nav.ir(Ruta.Avisos) }
+                    avisos.first().mensaje, MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer) { onAvisos() }
             }
         }
-        item { EncabezadoSeccion("Métricas principales", "Estadísticas") { nav.ir(Ruta.Estadisticas) } }
+        item { EncabezadoSeccion("Métricas principales", "Estadísticas") { onEstadisticas() } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TarjetaMetrica("Ingresos del mes", dinero(RendimientoNegocio.calcularIngresos(delMes)),
@@ -58,9 +64,9 @@ fun PantallaInicio(nav: Navegador) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TarjetaMetrica("Materiales", InventarioMateriales.obtenerTodos().size.toString(),
                     "${InventarioMateriales.obtenerTodos().count { InventarioMateriales.esStockBajo(it) }} bajos",
-                    MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.secondary, Modifier.weight(1f)) { nav.irARaiz(Ruta.Inventario) }
+                    MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.secondary, Modifier.weight(1f)) { onInventario() }
                 TarjetaMetrica("Productos", CatalogoProductos.obtenerTodos().size.toString(),
-                    null, MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)) { nav.irARaiz(Ruta.Catalogo) }
+                    null, MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)) { onCatalogo() }
             }
         }
         item { EncabezadoSeccion("Más vendidos del mes") }
@@ -76,7 +82,7 @@ fun PantallaInicio(nav: Navegador) {
         }
         item {
             Spacer(Modifier.height(4.dp))
-            BotonPrincipal("Registrar una venta") { nav.ir(Ruta.NuevaVenta) }
+            BotonPrincipal("Registrar una venta") { onNuevaVenta() }
         }
     }
 }

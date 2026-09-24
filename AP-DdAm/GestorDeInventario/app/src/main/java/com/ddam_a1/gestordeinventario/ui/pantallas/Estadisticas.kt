@@ -16,11 +16,10 @@ import com.ddam_a1.gestordeinventario.ui.*
 import com.ddam_a1.gestordeinventario.ui.componentes.*
 import com.ddam_a1.gestordeinventario.ui.theme.*
 import com.ddam_a1.gestordeinventario.datos.Ventas
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
 
 /** Pantalla 5 · Rendimiento del negocio (RF23, RF24). */
 @Composable
-fun PantallaEstadisticas(nav: Navegador) {
+fun PantallaEstadisticas(onAtras: () -> Unit) {
     EstadoApp.version
     var periodo by remember { mutableStateOf(Periodo.MENSUAL) }
     val fecha = hoy()
@@ -30,7 +29,7 @@ fun PantallaEstadisticas(nav: Navegador) {
     val costo = (ingresos - ganancia).coerceAtLeast(0.0)
     val top = RendimientoNegocio.productosMasVendidos(ventas, 5)
 
-    Marco(barra = { BarraSuperior("Rendimiento", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior("Rendimiento", onAtras = { onAtras() }) }) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChipFiltro("Día", periodo == Periodo.DIARIO) { periodo = Periodo.DIARIO }

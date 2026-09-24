@@ -20,8 +20,6 @@ import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelo.Rol
 import com.ddam_a1.gestordeinventario.datos.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.navegacion.Navegador
-import com.ddam_a1.gestordeinventario.ui.navegacion.Ruta
 import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
@@ -40,7 +38,7 @@ import com.ddam_a1.gestordeinventario.ui.componentes.OpcionSimple
 
 /** Pantalla 20 · Exportar datos (RF29). */
 @Composable
-fun PantallaExportar(nav: Navegador) {
+fun PantallaExportar(onAtras: () -> Unit) {
     var formato by remember { mutableStateOf(0) }
     var proteger by remember { mutableStateOf(true) }
     var clave by remember { mutableStateOf("") }
@@ -52,7 +50,7 @@ fun PantallaExportar(nav: Navegador) {
         "Base de datos (.sql)" to "Volcado de tablas para importar en otro gestor."
     )
 
-    Marco(barra = { BarraSuperior("Exportar datos", onAtras = { nav.volver() }) }) {
+    Marco(barra = { BarraSuperior("Exportar datos", onAtras = { onAtras() }) }) {
         item {
             Text("Se exporta todo: materiales, productos, recetas, ventas y el historial de cambios.",
                 style = MaterialTheme.typography.bodyMedium,
