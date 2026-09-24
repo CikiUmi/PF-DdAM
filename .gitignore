@@ -19,6 +19,8 @@ captures/
 *.apk
 *.ap_
 output-metadata.json
+.salive
+.kotlin
 
 # IntelliJ
 *.iml
