@@ -194,6 +194,79 @@ class InventarioViewModel @Inject constructor(
     suspend fun registrarExistencias(productoId: String, cantidad: Int, descontarMaterialesAhora: Boolean): Boolean =
         repo.registrarExistencias(productoId, cantidad, descontarMaterialesAhora)
 
+    /**
+     * El costo de produccion de cada producto, calculado sobre las dos listas
+     * que la pantalla YA tiene.
+     *
+     * Es una funcion pura, sin `suspend`, a proposito: al depender solo de
+     * `productos` y `materiales`, se recalcula sola cuando cualquiera de las dos
+     * cambia. Si subes el precio de la harina, el costo de todos los panes se
+     * actualiza sin que nadie llame a nada.
+     */
+    fun costosDeProduccion(
+        productos: List<Producto>,
+        materiales: List<Material>
+    ): Map<String, Double> = productos.associate { producto ->
+        producto.id to producto.receta.sumOf { ingrediente ->
+            val material = materiales.find { it.id == ingrediente.materialId }
+            (material?.costoUnitario ?: 0.0) * ingrediente.cantidadUsada
+        }
+    }
+
+    /**
+     * Da de alta o edita un producto y lo anota en la bitacora.
+     * Devuelve el id porque al crear uno nuevo la pantalla se va a su receta.
+     */
+    suspend fun guardarProducto(
+        id: String?,
+        nombre: String,
+        precioVenta: Double,
+        esBajoPedido: Boolean,
+        fecha: String
+    ): String? {
+        if (nombre.isBlank()) return null
+        return if (id == null) {
+            val creado = repo.crearProducto(nombre.trim(), precioVenta, esBajoPedido)
+            repo.registrarLog(fecha, "manual", "Alta de producto " + creado.nombre)
+            creado.id
+        } else {
+            repo.editarProducto(id, nombre.trim(), precioVenta)
+            val existente = repo.leerProducto(id)
+            if (existente != null) {
+                existente.esBajoPedido = esBajoPedido
+                repo.registrarLog(fecha, "manual", "Edicion de producto " + existente.nombre)
+            }
+            id
+        }
+    }
+
+    fun guardarReceta(productoId: String, ingredientes: Map<String, Double>) {
+        viewModelScope.launch { repo.reemplazarReceta(productoId, ingredientes) }
+    }
+
+    /**
+     * Registra un lote producido. Devuelve false si no alcanzaron los
+     * materiales, para que la pantalla lo diga en vez de fallar callada.
+     */
+    suspend fun registrarProduccion(
+        productoId: String,
+        cantidad: Int,
+        descontarMateriales: Boolean,
+        fecha: String
+    ): Boolean {
+        if (cantidad <= 0) return false
+        val ok = repo.registrarExistencias(productoId, cantidad, descontarMateriales)
+        if (ok) {
+            val producto = repo.leerProducto(productoId)
+            val nota = if (descontarMateriales) " (materiales descontados)" else " (sin descontar)"
+            repo.registrarLog(
+                fecha, "manual",
+                "Produccion de " + cantidad + " " + (producto?.nombre ?: "") + nota
+            )
+        }
+        return ok
+    }
+
     suspend fun leerProducto(id: String): Producto? = repo.leerProducto(id)
     suspend fun buscarProducto(texto: String): List<Producto> = repo.buscarProducto(texto)
     suspend fun calcularCostoProduccion(productoId: String): Double = repo.calcularCostoProduccion(productoId)

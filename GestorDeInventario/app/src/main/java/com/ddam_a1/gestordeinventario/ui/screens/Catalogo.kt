@@ -15,33 +15,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
-import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
+import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
+import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
+import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.Insignia
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
-import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 
-/** Pantalla 9 · Catálogo de productos (RF8). */
+/**
+ * Pantalla 9 - Catalogo de productos (RF8).
+ *
+ * `costos` llega ya calculado, uno por id. Antes la pantalla llamaba a
+ * `calcularCostoProduccion` dentro del bucle de la lista: una consulta por
+ * renglon, en cada recomposicion.
+ */
 @Composable
 fun PantallaCatalogo(
+    productos: List<Producto>,
+    costos: Map<String, Double>,
     onProducto: (String) -> Unit,
     onNuevoProducto: () -> Unit,
     onDestino: (DestinoBarra) -> Unit
 ) {
-    EstadoApp.version
     var texto by remember { mutableStateOf("") }
-    var filtro by remember { mutableStateOf(0) } // 0 todos · 1 con stock · 2 bajo pedido
+    var filtro by remember { mutableStateOf(0) } // 0 todos - 1 con stock - 2 bajo pedido
 
-    val base = if (texto.isBlank()) CatalogoProductos.obtenerTodos()
-    else CatalogoProductos.buscarProducto(texto)
+    val base =
+        if (texto.isBlank()) productos
+        else productos.filter { it.nombre.contains(texto, ignoreCase = true) }
+
     val lista = when (filtro) {
         1 -> base.filter { producto -> !producto.esBajoPedido }
         2 -> base.filter { producto -> producto.esBajoPedido }
@@ -49,7 +57,7 @@ fun PantallaCatalogo(
     }
 
     Marco(
-        barra = { BarraSuperior("Catálogo", base.size.toString() + " productos") },
+        barra = { BarraSuperior("Catalogo", base.size.toString() + " productos") },
         pie = { BarraInferior(DestinoBarra.CATALOGO, onDestino) }
     ) {
         item { BarraBusqueda(texto, "Buscar y filtrar producto", { texto = it }) }
@@ -65,7 +73,7 @@ fun PantallaCatalogo(
         } else {
             items(lista.size) { i ->
                 val producto = lista[i]
-                val costo = CatalogoProductos.calcularCostoProduccion(producto.id)
+                val costo = costos[producto.id] ?: 0.0
                 TarjetaSuave(onClick = { onProducto(producto.id) }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -73,15 +81,19 @@ fun PantallaCatalogo(
                                 color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Costo " + dinero(costo) + " · Precio " + dinero(producto.precioVenta),
+                                "Costo " + dinero(costo) + " - Precio " + dinero(producto.precioVenta),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (producto.esBajoPedido) {
-                            Insignia("Bajo pedido", MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
+                            Insignia("Bajo pedido",
+                                MaterialTheme.colorScheme.tertiary,
+                                MaterialTheme.colorScheme.tertiaryContainer)
                         } else {
-                            Insignia(producto.stockDisponible.toString() + " pza", MaterialTheme.coloresExtra.correct.color, MaterialTheme.coloresExtra.correct.colorContainer)
+                            Insignia(producto.stockDisponible.toString() + " pza",
+                                MaterialTheme.coloresExtra.correct.color,
+                                MaterialTheme.coloresExtra.correct.colorContainer)
                         }
                     }
                 }

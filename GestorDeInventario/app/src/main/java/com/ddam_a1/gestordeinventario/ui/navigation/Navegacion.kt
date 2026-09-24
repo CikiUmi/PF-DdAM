@@ -3,6 +3,10 @@ package com.ddam_a1.gestordeinventario.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -12,6 +16,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.hoy
+import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
+import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
 import com.ddam_a1.gestordeinventario.ui.screens.UsoEnProducto
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaAvisos
@@ -35,6 +41,7 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaReceta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
 import com.ddam_a1.gestordeinventario.viewModel.InventarioViewModel
+import kotlinx.coroutines.launch
 
 // ============================================================
 //  EL NAVHOST
@@ -58,6 +65,10 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
     // distinto por pantalla (uno por NavBackStackEntry) y el detalle de un
     // material no se enteraria de lo que acabas de guardar en su formulario.
     val inventarioVm: InventarioViewModel = hiltViewModel()
+
+    // Para las operaciones que devuelven un resultado y hay que esperarlo
+    // antes de decidir a donde ir (crear un producto, registrar produccion).
+    val scope = rememberCoroutineScope()
 
     // Ir a uno de los cuatro destinos de la barra de abajo.
     //
@@ -216,7 +227,14 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- CATALOGO ----------
 
         composable(RUTA_CATALOGO) {
+            val productos by inventarioVm.productos.collectAsState()
+            val materiales by inventarioVm.materiales.collectAsState()
+
             PantallaCatalogo(
+                productos = productos,
+                // Se recalcula solo: depende de las dos listas. Si sube el
+                // precio de un material, el costo de sus productos cambia aqui.
+                costos = inventarioVm.costosDeProduccion(productos, materiales),
                 onProducto = { id -> navController.navigate(rutaDetalleProducto(id)) },
                 onNuevoProducto = { navController.navigate(rutaFormularioProducto(null)) },
                 onDestino = { destino -> irADestino(destino) }
@@ -228,8 +246,24 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
         ) { entrada ->
             val id = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val productos by inventarioVm.productos.collectAsState()
+            val materiales by inventarioVm.materiales.collectAsState()
+
+            val producto = productos.find { it.id == id }
+            val receta = producto?.receta.orEmpty().map { ingrediente ->
+                val material = materiales.find { it.id == ingrediente.materialId }
+                RenglonReceta(
+                    nombre = material?.nombre ?: "Material",
+                    unidad = material?.unidadMedida ?: "",
+                    costoUnitario = material?.costoUnitario ?: 0.0,
+                    cantidadUsada = ingrediente.cantidadUsada
+                )
+            }
+
             PantallaDetalleProducto(
-                id = id,
+                producto = producto,
+                costo = inventarioVm.costosDeProduccion(productos, materiales)[id] ?: 0.0,
+                receta = receta,
                 onEditar = { navController.navigate(rutaFormularioProducto(id)) },
                 onProducir = { navController.navigate(rutaProduccion(id)) },
                 onReceta = { navController.navigate(rutaReceta(id)) },
@@ -245,9 +279,31 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 defaultValue = null
             })
         ) { entrada ->
+            val id = entrada.arguments?.getString(ARG_ID)
+            val productos by inventarioVm.productos.collectAsState()
+
             PantallaFormularioProducto(
-                id = entrada.arguments?.getString(ARG_ID),
-                onReceta = { productoId -> navController.navigate(rutaReceta(productoId)) },
+                producto = id?.let { buscado -> productos.find { it.id == buscado } },
+                onGuardar = { datos ->
+                    // `guardarProducto` devuelve el id, y hay que esperarlo para
+                    // saber a donde ir. Por eso va en el scope y no es un
+                    // `launch` escondido dentro del ViewModel.
+                    scope.launch {
+                        val nuevoId = inventarioVm.guardarProducto(
+                            id = id,
+                            nombre = datos.nombre,
+                            precioVenta = datos.precioVenta,
+                            esBajoPedido = datos.esBajoPedido,
+                            fecha = hoy()
+                        )
+                        // Un producto recien creado se va derecho a su receta.
+                        if (id == null && nuevoId != null) {
+                            navController.navigate(rutaReceta(nuevoId))
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
+                },
                 onAtras = atras
             )
         }
@@ -256,8 +312,17 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             route = RUTA_RECETA,
             arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
         ) { entrada ->
+            val productoId = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val productos by inventarioVm.productos.collectAsState()
+            val materiales by inventarioVm.materiales.collectAsState()
+            val producto = productos.find { it.id == productoId }
+
             PantallaReceta(
-                productoId = entrada.arguments?.getString(ARG_ID).orEmpty(),
+                nombreProducto = producto?.nombre ?: "",
+                materiales = materiales,
+                recetaActual = producto?.receta.orEmpty()
+                    .associate { it.materialId to it.cantidadUsada },
+                onGuardar = { ingredientes -> inventarioVm.guardarReceta(productoId, ingredientes) },
                 onAtras = atras
             )
         }
@@ -266,8 +331,40 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             route = RUTA_PRODUCCION,
             arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
         ) { entrada ->
+            val productoId = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val productos by inventarioVm.productos.collectAsState()
+            val materiales by inventarioVm.materiales.collectAsState()
+            val producto = productos.find { it.id == productoId }
+
+            // El mensaje de "no alcanzan los materiales" vive aqui porque es la
+            // respuesta a una operacion, no un dato de la pantalla.
+            var errorProduccion by remember(productoId) { mutableStateOf("") }
+
+            val receta = producto?.receta.orEmpty().map { ingrediente ->
+                val material = materiales.find { it.id == ingrediente.materialId }
+                RenglonProduccion(
+                    nombre = material?.nombre ?: "Material",
+                    unidad = material?.unidadMedida ?: "",
+                    cantidadPorPieza = ingrediente.cantidadUsada,
+                    disponible = material?.cantidadDisponible ?: 0.0
+                )
+            }
+
             PantallaProduccion(
-                productoId = entrada.arguments?.getString(ARG_ID).orEmpty(),
+                nombreProducto = producto?.nombre ?: "",
+                receta = receta,
+                error = errorProduccion,
+                onProducir = { cantidad, descontar ->
+                    scope.launch {
+                        val ok = inventarioVm.registrarProduccion(productoId, cantidad, descontar, hoy())
+                        if (ok) {
+                            navController.popBackStack()
+                        } else {
+                            errorProduccion =
+                                "No alcanzan los materiales para producir " + cantidad + " piezas."
+                        }
+                    }
+                },
                 onAtras = atras
             )
         }

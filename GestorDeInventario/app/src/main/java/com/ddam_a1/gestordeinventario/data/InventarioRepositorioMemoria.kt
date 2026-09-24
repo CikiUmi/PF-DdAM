@@ -122,6 +122,19 @@ class InventarioRepositorioMemoria @Inject constructor() : InventarioRepositorio
         return ok
     }
 
+    override suspend fun reemplazarReceta(productoId: String, ingredientes: Map<String, Double>): Boolean {
+        val producto = CatalogoProductos.obtenerProductoPorId(productoId) ?: return false
+        producto.receta.clear()
+        for (entrada in ingredientes) {
+            if (entrada.value > 0.0) {
+                CatalogoProductos.agregarIngredienteReceta(productoId, entrada.key, entrada.value)
+            }
+        }
+        CatalogoProductos.calcularCostoProduccion(productoId)
+        refrescarProductos()
+        return true
+    }
+
     override suspend fun asignarPrecioVenta(productoId: String, precio: Double): Boolean {
         val ok = CatalogoProductos.asignarPrecioVenta(productoId, precio)
         refrescarProductos()

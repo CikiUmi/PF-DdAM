@@ -62,6 +62,16 @@ interface InventarioRepositorio {
     suspend fun editarProducto(id: String, nombre: String? = null, precioVenta: Double? = null): Boolean
     suspend fun eliminarProducto(id: String): Boolean
     suspend fun agregarIngredienteReceta(productoId: String, materialId: String, cantidadUsada: Double): Boolean
+    /**
+     * Deja la receta EXACTAMENTE con estos ingredientes: borra lo que hubiera y
+     * pone lo nuevo.
+     *
+     * Antes la pantalla hacia `producto.receta.clear()` y luego agregaba uno por
+     * uno. Eso es escribir en la base desde la vista. Aqui es una sola
+     * operacion, y con Room sera un DELETE + INSERT en una transaccion.
+     */
+    suspend fun reemplazarReceta(productoId: String, ingredientes: Map<String, Double>): Boolean
+
     suspend fun asignarPrecioVenta(productoId: String, precio: Double): Boolean
     suspend fun registrarExistencias(productoId: String, cantidad: Int, descontarMaterialesAhora: Boolean): Boolean
     suspend fun leerProducto(id: String): Producto?

@@ -7,61 +7,60 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.data.InventarioMateriales
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
-import com.ddam_a1.gestordeinventario.ui.hoy
-import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
-/** Pantalla 13 · Registrar producción (RF10, RF11). */
+/**
+ * Pantalla 13 - Registrar produccion (RF10, RF11).
+ *
+ * `error` llega de afuera: lo pone quien intento registrar y no alcanzaron los
+ * materiales. La pantalla no sabe por que fallo, solo lo muestra.
+ */
 @Composable
-fun PantallaProduccion(productoId: String, onAtras: () -> Unit) {
-    EstadoApp.version
-    val producto = CatalogoProductos.obtenerProductoPorId(productoId)
-    if (producto == null) {
-        onAtras()
-        return
-    }
+fun PantallaProduccion(
+    nombreProducto: String,
+    receta: List<RenglonProduccion>,
+    error: String,
+    onProducir: (cantidad: Int, descontarMateriales: Boolean) -> Unit,
+    onAtras: () -> Unit
+) {
     var cantidad by remember { mutableStateOf("1") }
     var preguntar by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf("") }
     val n = cantidad.toIntOrNull() ?: 0
 
     Marco(barra = {
-        BarraSuperior("Registrar producción", producto.nombre, onAtras = { onAtras() })
+        BarraSuperior("Registrar produccion", nombreProducto, onAtras = onAtras)
     }) {
         item {
             CampoTexto(cantidad, "Cantidad a producir",
                 { nuevo -> cantidad = nuevo.filter { c -> c.isDigit() } }, sufijo = "piezas")
         }
         item { EncabezadoSeccion("Materiales necesarios") }
-        items(producto.receta.size) { i ->
-            val ingrediente = producto.receta[i]
-            val material = InventarioMateriales.obtenerMaterialPorId(ingrediente.materialId)
-            val disponible = if (material != null) material.cantidadDisponible else 0.0
-            val unidad = if (material != null) material.unidadMedida else ""
-            val necesita = ingrediente.cantidadUsada * n
-            val alcanza = disponible >= necesita
+        items(receta.size) { i ->
+            val renglon = receta[i]
+            // Multiplicar por las piezas SI es trabajo de aqui: depende de lo
+            // que el usuario acaba de escribir, y es aritmetica para mostrar.
+            val necesita = renglon.cantidadPorPieza * n
+            val alcanza = renglon.disponible >= necesita
             FilaLista(
-                titulo = if (material != null) material.nombre else "Material",
-                subtitulo = "Necesitas " + cant(necesita) + " " + unidad,
-                valor = cant(disponible) + " " + unidad,
+                titulo = renglon.nombre,
+                subtitulo = "Necesitas " + cant(necesita) + " " + renglon.unidad,
+                valor = cant(renglon.disponible) + " " + renglon.unidad,
                 notaValor = if (alcanza) "disponible" else "insuficiente",
-                colorPunto = if (alcanza) MaterialTheme.coloresExtra.correct.color else MaterialTheme.colorScheme.error
+                colorPunto = if (alcanza) MaterialTheme.coloresExtra.correct.color
+                             else MaterialTheme.colorScheme.error
             )
         }
         item {
             TarjetaSuave {
-                Text("La caducidad del lote se toma de la fecha más cercana de sus materiales.",
+                Text("La caducidad del lote se toma de la fecha mas cercana de sus materiales.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -73,39 +72,19 @@ fun PantallaProduccion(productoId: String, onAtras: () -> Unit) {
             }
         }
         item {
-            BotonPrincipal("Registrar producción", habilitado = n > 0) {
-                error = ""
-                preguntar = true
-            }
+            BotonPrincipal("Registrar produccion", habilitado = n > 0) { preguntar = true }
         }
     }
 
     if (preguntar) {
         DialogoSiNo(
-            titulo = "¿Descontar los materiales del inventario?",
-            mensaje = "Vas a registrar " + n + " piezas de " + producto.nombre +
-                ". Puedes descontar ahora los materiales que usaste, o dejarlos como están si los repusiste aparte.",
+            titulo = "Descontar los materiales del inventario?",
+            mensaje = "Vas a registrar " + n + " piezas de " + nombreProducto +
+                ". Puedes descontar ahora los materiales que usaste, o dejarlos como estan si los repusiste aparte.",
             textoSi = "Descontar",
             textoNo = "No descontar",
-            onSi = {
-                preguntar = false
-                if (CatalogoProductos.registrarExistencias(productoId, n, true)) {
-                    AlmacenamientoLocal.registrarLog(hoy(), "manual",
-                        "Producción de " + n + " " + producto.nombre + " (materiales descontados)")
-                    EstadoApp.datosCambiaron()
-                    onAtras()
-                } else {
-                    error = "No alcanzan los materiales para producir " + n + " piezas."
-                }
-            },
-            onNo = {
-                preguntar = false
-                CatalogoProductos.registrarExistencias(productoId, n, false)
-                AlmacenamientoLocal.registrarLog(hoy(), "manual",
-                    "Producción de " + n + " " + producto.nombre + " (sin descontar)")
-                EstadoApp.datosCambiaron()
-                onAtras()
-            },
+            onSi = { preguntar = false; onProducir(n, true) },
+            onNo = { preguntar = false; onProducir(n, false) },
             onCerrar = { preguntar = false }
         )
     }
