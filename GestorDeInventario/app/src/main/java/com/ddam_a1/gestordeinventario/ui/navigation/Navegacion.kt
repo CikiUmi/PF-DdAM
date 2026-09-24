@@ -1,13 +1,18 @@
 package com.ddam_a1.gestordeinventario.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
+import com.ddam_a1.gestordeinventario.ui.hoy
+import com.ddam_a1.gestordeinventario.ui.screens.UsoEnProducto
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaAvisos
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaCatalogo
@@ -29,6 +34,7 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaPermisos
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaReceta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
+import com.ddam_a1.gestordeinventario.viewModel.InventarioViewModel
 
 // ============================================================
 //  EL NAVHOST
@@ -46,6 +52,12 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
 fun GestorNavHost(modifier: Modifier = Modifier) {
 
     val navController = rememberNavController()
+
+    // UN solo ViewModel para toda la app: se pide AQUI, arriba del NavHost, no
+    // dentro de cada destino. Si lo pidieras adentro, Compose te daria uno
+    // distinto por pantalla (uno por NavBackStackEntry) y el detalle de un
+    // material no se enteraria de lo que acabas de guardar en su formulario.
+    val inventarioVm: InventarioViewModel = hiltViewModel()
 
     // Ir a uno de los cuatro destinos de la barra de abajo.
     //
@@ -116,7 +128,19 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- INVENTARIO ----------
 
         composable(RUTA_INVENTARIO) {
+            // `collectAsState` se suscribe al StateFlow y convierte cada emision
+            // en estado de Compose. Esa suscripcion es la que hace que la lista
+            // se redibuje SOLA cuando cambia el inventario. Ya nadie llama a
+            // `EstadoApp.datosCambiaron()`.
+            //
+            // Y va AQUI DENTRO, no arriba: asi nace y muere con la pantalla,
+            // que es lo que el WhileSubscribed(5000) del ViewModel espera para
+            // poder soltar el flow.
+            val materiales by inventarioVm.materiales.collectAsState()
+
             PantallaInventario(
+                materiales = materiales,
+                esStockBajo = { material -> inventarioVm.esStockBajo(material) },
                 onMaterial = { id -> navController.navigate(rutaDetalleMaterial(id)) },
                 onNuevoMaterial = { navController.navigate(rutaFormularioMaterial(null)) },
                 onDestino = { destino -> irADestino(destino) }
@@ -128,8 +152,32 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
         ) { entrada ->
             val id = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val materiales by inventarioVm.materiales.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
+
+            // El material se saca de la MISMA lista en vivo, no con una lectura
+            // suelta por id. Asi, al agregar un lote, la lista vuelve a emitir y
+            // esta pantalla se actualiza sola.
+            val material = materiales.find { it.id == id }
+
+            // Masticar la receta es trabajo de aqui, que tiene los productos.
+            // La pantalla recibe la respuesta, no los ingredientes crudos.
+            val usadoEn = productos.mapNotNull { producto ->
+                producto.receta.firstOrNull { it.materialId == id }
+                    ?.let { ingrediente ->
+                        UsoEnProducto(producto.id, producto.nombre, ingrediente.cantidadUsada)
+                    }
+            }
+
             PantallaDetalleMaterial(
-                id = id,
+                material = material,
+                bajo = material != null && inventarioVm.esStockBajo(material),
+                usadoEn = usadoEn,
+                onAgregarCaducidad = { caducidad ->
+                    if (material != null) {
+                        inventarioVm.agregarLoteConCaducidad(material.id, material.nombre, caducidad, hoy())
+                    }
+                },
                 onProducto = { productoId -> navController.navigate(rutaDetalleProducto(productoId)) },
                 onEditar = { navController.navigate(rutaFormularioMaterial(id)) },
                 onAtras = atras
@@ -144,8 +192,23 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 defaultValue = null
             })
         ) { entrada ->
+            val id = entrada.arguments?.getString(ARG_ID)
+            val materiales by inventarioVm.materiales.collectAsState()
+
             PantallaFormularioMaterial(
-                id = entrada.arguments?.getString(ARG_ID),
+                material = id?.let { buscado -> materiales.find { it.id == buscado } },
+                onGuardar = { datos ->
+                    inventarioVm.guardarMaterial(
+                        id = id,
+                        nombre = datos.nombre,
+                        unidad = datos.unidad,
+                        cantidad = datos.cantidad,
+                        costo = datos.costo,
+                        stockMinimo = datos.stockMinimo,
+                        diasAvisoCaducidad = datos.diasAvisoCaducidad,
+                        fecha = hoy()
+                    )
+                },
                 onAtras = atras
             )
         }

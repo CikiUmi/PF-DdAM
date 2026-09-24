@@ -115,6 +115,54 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch { repo.definirDiasAvisoCaducidad(materialId, dias) }
     }
 
+    /**
+     * Da de alta o edita un material, COMPLETO: nombre, costo, stock minimo,
+     * dias de aviso y la entrada en la bitacora.
+     *
+     * Antes esto vivia dentro del boton "Guardar" de la pantalla: cinco
+     * llamadas seguidas a los objetos de data/, y si fallaba la tercera el
+     * material quedaba a medias. Aqui es UNA operacion y la pantalla solo
+     * entrega los datos del formulario.
+     *
+     * `fecha` la manda quien llama porque `hoy()` vive en ui/Formato.kt y el
+     * ViewModel no debe importar nada de ui.
+     */
+    fun guardarMaterial(
+        id: String?,
+        nombre: String,
+        unidad: String,
+        cantidad: Double,
+        costo: Double,
+        stockMinimo: Double,
+        diasAvisoCaducidad: Int,
+        fecha: String
+    ) {
+        if (nombre.isBlank() || unidad.isBlank()) return
+        viewModelScope.launch {
+            val destino = if (id == null) {
+                repo.agregarMaterial(nombre.trim(), unidad.trim(), costo, cantidad)
+            } else {
+                repo.editarMaterial(id, nombre.trim(), costo)
+                repo.leerMaterial(id) ?: return@launch
+            }
+            repo.definirStockMinimo(destino.id, stockMinimo)
+            repo.definirDiasAvisoCaducidad(destino.id, diasAvisoCaducidad)
+            repo.registrarLog(
+                fecha, "manual",
+                (if (id == null) "Alta" else "Edicion") + " de material " + destino.nombre
+            )
+        }
+    }
+
+    /** Agrega un lote con su caducidad y lo deja anotado en la bitacora. */
+    fun agregarLoteConCaducidad(materialId: String, nombreMaterial: String, caducidad: String, fecha: String) {
+        if (caducidad.isBlank()) return
+        viewModelScope.launch {
+            repo.agregarFechaCaducidad(materialId, caducidad.trim())
+            repo.registrarLog(fecha, "manual", "Caducidad " + caducidad.trim() + " en " + nombreMaterial)
+        }
+    }
+
     suspend fun leerMaterial(id: String): Material? = repo.leerMaterial(id)
     suspend fun buscarMaterial(texto: String): List<Material> = repo.buscarMaterial(texto)
     fun esStockBajo(material: Material): Boolean = repo.esStockBajo(material)

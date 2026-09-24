@@ -1,36 +1,65 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.data.InventarioMateriales
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
-import com.ddam_a1.gestordeinventario.ui.*
-import com.ddam_a1.gestordeinventario.ui.components.*
+import com.ddam_a1.gestordeinventario.modelClasses.Material
+import com.ddam_a1.gestordeinventario.ui.cant
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
+import com.ddam_a1.gestordeinventario.ui.components.BotonSecundario
+import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.Insignia
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.dinero
 
-/** Pantalla 7 · Detalle de material (RF3, RF9, RF18, RF19). */
+/**
+ * Pantalla 7 - Detalle de material (RF3, RF9, RF18, RF19).
+ *
+ * `material` puede ser null mientras el NavHost todavia lo esta buscando, o si
+ * lo borraron desde otra pantalla. La decision de que hacer en ese caso es de
+ * quien navega, no de la pantalla: aqui solo se dibuja un hueco.
+ */
 @Composable
 fun PantallaDetalleMaterial(
-    id: String,
+    material: Material?,
+    bajo: Boolean,
+    usadoEn: List<UsoEnProducto>,
+    onAgregarCaducidad: (String) -> Unit,
     onProducto: (String) -> Unit,
     onEditar: () -> Unit,
     onAtras: () -> Unit
 ) {
-    EstadoApp.version
-    val m = InventarioMateriales.obtenerMaterialPorId(id)
     var nuevaFecha by remember { mutableStateOf("") }
 
-    if (m == null) { onAtras(); return }
-    val bajo = InventarioMateriales.esStockBajo(m)
-    val usadoEn = CatalogoProductos.obtenerTodos().filter { p -> p.receta.any { it.materialId == id } }
+    if (material == null) {
+        Marco(barra = { BarraSuperior("Material", onAtras = onAtras) }) {
+            item { Text("Este material ya no existe.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        return
+    }
 
     Marco(barra = {
-        BarraSuperior(m.nombre, onAtras = { onAtras() }) {
+        BarraSuperior(material.nombre, onAtras = onAtras) {
             BotonIcono(Iconos.Editar, "Editar", { onEditar() })
         }
     }) {
@@ -40,59 +69,77 @@ fun PantallaDetalleMaterial(
                     Column(Modifier.weight(1f)) {
                         Text("En inventario", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${cant(m.cantidadDisponible)} ${m.unidadMedida}",
+                        Text(cant(material.cantidadDisponible) + " " + material.unidadMedida,
                             style = MaterialTheme.typography.headlineSmall,
                             color = if (bajo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                     }
                     Column(Modifier.weight(1f)) {
                         Text("Costo unitario", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(dinero(m.costoUnitario), style = MaterialTheme.typography.headlineSmall,
+                        Text(dinero(material.costoUnitario), style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Insignia("Aviso en ${cant(m.stockMinimo)} ${m.unidadMedida}", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)
-                    if (m.diasAvisoCaducidad > 0)
-                        Insignia("${m.diasAvisoCaducidad} días antes", MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
-                }
-            }
-        }
-        item { EncabezadoSeccion("Fechas de caducidad (RF9)") }
-        if (m.fechasCaducidad.isEmpty()) {
-            item { Text("Este material no registra caducidad.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        } else {
-            items(m.fechasCaducidad.size) { i ->
-                FilaLista("Lote ${i + 1}", "Caduca el ${m.fechasCaducidad[i]}")
-            }
-        }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.weight(1f)) { CampoTexto(nuevaFecha, "Nueva fecha (aaaa-mm-dd)", { nuevaFecha = it }) }
-                Box(Modifier.width(120.dp)) {
-                    BotonSecundario("Agregar") {
-                        if (nuevaFecha.isNotBlank()) {
-                            InventarioMateriales.agregarFechaCaducidad(id, nuevaFecha.trim())
-                            AlmacenamientoLocal.registrarLog(hoy(), "manual", "Caducidad ${nuevaFecha.trim()} en ${m.nombre}")
-                            nuevaFecha = ""; EstadoApp.datosCambiaron()
-                        }
+                    Insignia(
+                        "Aviso en " + cant(material.stockMinimo) + " " + material.unidadMedida,
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
+                    )
+                    if (material.diasAvisoCaducidad > 0) {
+                        Insignia(
+                            material.diasAvisoCaducidad.toString() + " dias antes",
+                            MaterialTheme.colorScheme.tertiary,
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        )
                     }
                 }
             }
         }
+
+        item { EncabezadoSeccion("Fechas de caducidad (RF9)") }
+        if (material.fechasCaducidad.isEmpty()) {
+            item {
+                Text("Este material no registra caducidad.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            items(material.fechasCaducidad.size) { i ->
+                FilaLista("Lote " + (i + 1), "Caduca el " + material.fechasCaducidad[i])
+            }
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.weight(1f)) {
+                    CampoTexto(nuevaFecha, "Nueva fecha (aaaa-mm-dd)", { nuevaFecha = it })
+                }
+                Box(Modifier.width(120.dp)) {
+                    BotonSecundario("Agregar") {
+                        // La pantalla no guarda nada: avisa y limpia su campo.
+                        onAgregarCaducidad(nuevaFecha)
+                        nuevaFecha = ""
+                    }
+                }
+            }
+        }
+
         item { EncabezadoSeccion("Se usa en") }
         if (usadoEn.isEmpty()) {
-            item { Text("Todavía no forma parte de ninguna receta.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            item {
+                Text("Todavia no forma parte de ninguna receta.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else {
             items(usadoEn.size) { i ->
-                val p = usadoEn[i]
-                val ing = p.receta.first { it.materialId == id }
-                FilaLista(p.nombre, "${cant(ing.cantidadUsada)} ${m.unidadMedida} por pieza") {
-                    onProducto(p.id)
-                }
+                val uso = usadoEn[i]
+                FilaLista(
+                    uso.nombre,
+                    cant(uso.cantidadUsada) + " " + material.unidadMedida + " por pieza"
+                ) { onProducto(uso.productoId) }
             }
         }
     }
