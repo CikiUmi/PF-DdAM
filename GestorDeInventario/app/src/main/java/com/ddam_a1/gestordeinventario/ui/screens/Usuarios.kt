@@ -32,6 +32,7 @@ fun PantallaUsuarios(
     usuarios: List<Usuario>,
     usuarioActual: Usuario?,
     esAdmin: Boolean,
+    error: String?,
     onCrearUsuario: (nombre: String, clave: String, rol: Rol) -> Unit,
     onPermisos: () -> Unit,
     onAtras: () -> Unit
@@ -72,12 +73,16 @@ fun PantallaUsuarios(
                     }
                 }
             }
+            if (error != null) {
+                item {
+                    Text(error, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error)
+                }
+            }
             item {
                 BotonPrincipal("Crear usuario",
                     habilitado = nombre.isNotBlank() && clave.length >= 4) {
                     onCrearUsuario(nombre.trim(), clave, rolElegido)
-                    nombre = ""
-                    clave = ""
                 }
             }
         }

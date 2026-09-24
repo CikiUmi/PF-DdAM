@@ -1,26 +1,42 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.InventarioMateriales
-import com.ddam_a1.gestordeinventario.data.Notificaciones
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
-import com.ddam_a1.gestordeinventario.modelClasses.Periodo
-import com.ddam_a1.gestordeinventario.data.RendimientoNegocio
-import com.ddam_a1.gestordeinventario.ui.*
-import com.ddam_a1.gestordeinventario.ui.components.*
-import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.data.Ventas
+import com.ddam_a1.gestordeinventario.modelClasses.Aviso
+import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
+import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
+import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
-/** Pantalla 4 · Menú principal (RF21, RF23). */
+/**
+ * Pantalla 4 - Menu principal (RF21, RF23).
+ *
+ * Es la que mas datos junta de toda la app: materiales, productos, ventas y
+ * avisos. Y aun asi no pide ninguno: todos llegan ya calculados dentro de
+ * `resumen`, y los avisos y el top ya resueltos.
+ */
 @Composable
 fun PantallaInicio(
+    nombreUsuario: String?,
+    avisos: List<Aviso>,
+    resumen: ResumenInicio,
+    masVendidos: List<VentaPorProducto>,
     onAvisos: () -> Unit,
     onConfiguracion: () -> Unit,
     onEstadisticas: () -> Unit,
@@ -29,57 +45,71 @@ fun PantallaInicio(
     onCatalogo: () -> Unit,
     onDestino: (DestinoBarra) -> Unit
 ) {
-    EstadoApp.version
-    val fecha = hoy()
-    val ventas = Ventas.obtenerHistorialVentas()
-    val delMes = RendimientoNegocio.filtrarVentasPorPeriodo(ventas, Periodo.MENSUAL, fecha)
-    val avisos = Notificaciones.revisarStockBajo() + Notificaciones.revisarCaducidadesProximas(fecha)
-    val topes = RendimientoNegocio.productosMasVendidos(delMes, 3)
-
     Marco(
         barra = {
-            BarraSuperior("Inicio", EstadoApp.usuario?.nombreUsuario) {
+            BarraSuperior("Inicio", nombreUsuario) {
                 BotonIcono(Iconos.Campana, "Avisos", { onAvisos() }, conPunto = avisos.isNotEmpty())
-                BotonIcono(Iconos.Ajustes, "Configuración", { onConfiguracion() })
+                BotonIcono(Iconos.Ajustes, "Configuracion", { onConfiguracion() })
             }
         },
         pie = { BarraInferior(DestinoBarra.INICIO, onDestino) }
     ) {
         if (avisos.isNotEmpty()) {
             item {
-                BannerAviso("${avisos.size} avisos del inventario",
-                    avisos.first().mensaje, MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer) { onAvisos() }
+                BannerAviso(
+                    avisos.size.toString() + " avisos del inventario",
+                    avisos.first().mensaje,
+                    MaterialTheme.colorScheme.error,
+                    MaterialTheme.colorScheme.errorContainer
+                ) { onAvisos() }
             }
         }
-        item { EncabezadoSeccion("Métricas principales", "Estadísticas") { onEstadisticas() } }
+
+        item { EncabezadoSeccion("Metricas principales", "Estadisticas") { onEstadisticas() } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica("Ingresos del mes", dinero(RendimientoNegocio.calcularIngresos(delMes)),
-                    "${delMes.size} ventas", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                TarjetaMetrica("Ganancia", dinero(RendimientoNegocio.calcularGanancias(delMes)),
-                    null, MaterialTheme.coloresExtra.correct.colorContainer, MaterialTheme.coloresExtra.correct.color, Modifier.weight(1f))
+                TarjetaMetrica(
+                    "Ingresos del mes", dinero(resumen.ingresosDelMes),
+                    resumen.ventasDelMes.toString() + " ventas",
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.primary, Modifier.weight(1f)
+                )
+                TarjetaMetrica(
+                    "Ganancia", dinero(resumen.gananciaDelMes), null,
+                    MaterialTheme.coloresExtra.correct.colorContainer,
+                    MaterialTheme.coloresExtra.correct.color, Modifier.weight(1f)
+                )
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica("Materiales", InventarioMateriales.obtenerTodos().size.toString(),
-                    "${InventarioMateriales.obtenerTodos().count { InventarioMateriales.esStockBajo(it) }} bajos",
-                    MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.secondary, Modifier.weight(1f)) { onInventario() }
-                TarjetaMetrica("Productos", CatalogoProductos.obtenerTodos().size.toString(),
-                    null, MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)) { onCatalogo() }
+                TarjetaMetrica(
+                    "Materiales", resumen.totalMateriales.toString(),
+                    resumen.materialesBajos.toString() + " bajos",
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.secondary, Modifier.weight(1f)
+                ) { onInventario() }
+                TarjetaMetrica(
+                    "Productos", resumen.totalProductos.toString(), null,
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)
+                ) { onCatalogo() }
             }
         }
-        item { EncabezadoSeccion("Más vendidos del mes") }
-        if (topes.isEmpty()) {
-            item { Text("Aún no hay ventas este mes.", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+
+        item { EncabezadoSeccion("Mas vendidos del mes") }
+        if (masVendidos.isEmpty()) {
+            item {
+                Text("Aun no hay ventas este mes.", style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else {
-            items(topes.size) { i ->
-                val (id, n) = topes[i]
-                FilaLista(CatalogoProductos.obtenerProductoPorId(id)?.nombre ?: "Producto",
-                    valor = "$n", notaValor = "piezas")
+            items(masVendidos.size) { i ->
+                val renglon = masVendidos[i]
+                FilaLista(renglon.nombre, valor = renglon.piezas.toString(), notaValor = "piezas")
             }
         }
+
         item {
             Spacer(Modifier.height(4.dp))
             BotonPrincipal("Registrar una venta") { onNuevaVenta() }

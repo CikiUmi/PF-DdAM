@@ -19,6 +19,9 @@ class SesionRepositorioMemoria @Inject constructor() : SesionRepositorio {
 
     override suspend fun esPrimerUso(): Boolean = Usuarios.esPrimerUso()
 
+    override suspend fun existeUsuario(nombreUsuario: String): Boolean =
+        Usuarios.obtenerTodos().any { it.nombreUsuario.equals(nombreUsuario.trim(), ignoreCase = true) }
+
     override suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario {
         val admin = Usuarios.crearUsuarioAdministrador(nombreUsuario, contrasena)
         refrescar()

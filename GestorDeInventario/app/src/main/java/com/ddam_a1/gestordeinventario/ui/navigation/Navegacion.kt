@@ -19,6 +19,8 @@ import com.ddam_a1.gestordeinventario.data.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.Rol
 import com.ddam_a1.gestordeinventario.ui.hoy
+import com.ddam_a1.gestordeinventario.ui.screens.ResumenInicio
+import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
 import com.ddam_a1.gestordeinventario.ui.screens.UsoEnProducto
@@ -44,6 +46,7 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaReceta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
 import com.ddam_a1.gestordeinventario.viewModel.InventarioViewModel
+import com.ddam_a1.gestordeinventario.viewModel.ResultadoAltaUsuario
 import com.ddam_a1.gestordeinventario.viewModel.SesionViewModel
 import kotlinx.coroutines.launch
 
@@ -132,8 +135,11 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             PantallaCrearAdmin(
                 onCrear = { usuario, clave ->
                     scope.launch {
-                        sesionVm.crearUsuarioAdministrador(usuario, clave)
-                        navController.navigate(RUTA_ELEGIR_MODO)
+                        // Devuelve null si el nombre ya esta tomado; en ese caso
+                        // no se avanza.
+                        if (sesionVm.crearUsuarioAdministrador(usuario, clave) != null) {
+                            navController.navigate(RUTA_ELEGIR_MODO)
+                        }
                     }
                 }
             )
@@ -151,7 +157,29 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- INICIO ----------
 
         composable(RUTA_INICIO) {
+            val materiales by inventarioVm.materiales.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
+            val ventas by inventarioVm.ventas.collectAsState()
+            val usuario by sesionVm.usuarioActual.collectAsState()
+            val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
+
+            val delMes = inventarioVm.filtrarVentasPorPeriodo(ventas, Periodo.MENSUAL, hoy())
+
             PantallaInicio(
+                nombreUsuario = usuario?.nombreUsuario,
+                avisos = avisos,
+                resumen = ResumenInicio(
+                    ingresosDelMes = inventarioVm.calcularIngresos(delMes),
+                    gananciaDelMes = inventarioVm.calcularGanancias(delMes),
+                    ventasDelMes = delMes.size,
+                    totalMateriales = materiales.size,
+                    materialesBajos = materiales.count { inventarioVm.esStockBajo(it) },
+                    totalProductos = productos.size
+                ),
+                masVendidos = inventarioVm.productosMasVendidos(delMes, 3).map { (id, piezas) ->
+                    val producto = productos.find { it.id == id }
+                    VentaPorProducto(producto?.nombre ?: "Producto", piezas, producto?.precioVenta ?: 0.0)
+                },
                 onAvisos = { navController.navigate(RUTA_AVISOS) },
                 onConfiguracion = { navController.navigate(RUTA_CONFIGURACION) },
                 onEstadisticas = { navController.navigate(RUTA_ESTADISTICAS) },
@@ -163,7 +191,31 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(RUTA_ESTADISTICAS) {
-            PantallaEstadisticas(onAtras = atras)
+            val ventas by inventarioVm.ventas.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
+
+            // Arranca en MENSUAL; el historial arranca en DIARIO. Son dos
+            // estados independientes a proposito.
+            var periodo by remember { mutableStateOf(Periodo.MENSUAL) }
+
+            val delPeriodo = inventarioVm.filtrarVentasPorPeriodo(ventas, periodo, hoy())
+            val ingresos = inventarioVm.calcularIngresos(delPeriodo)
+            val ganancia = inventarioVm.calcularGanancias(delPeriodo)
+
+            PantallaEstadisticas(
+                periodo = periodo,
+                onPeriodo = { nuevo -> periodo = nuevo },
+                ingresos = ingresos,
+                ganancia = ganancia,
+                // El costo no se consulta: es lo que queda. El coerce es por si
+                // una venta cancelada deja la ganancia arriba de los ingresos.
+                costo = (ingresos - ganancia).coerceAtLeast(0.0),
+                masVendidos = inventarioVm.productosMasVendidos(delPeriodo, 5).map { (id, piezas) ->
+                    val producto = productos.find { it.id == id }
+                    VentaPorProducto(producto?.nombre ?: "Producto", piezas, producto?.precioVenta ?: 0.0)
+                },
+                onAtras = atras
+            )
         }
 
         // ---------- INVENTARIO ----------
@@ -479,12 +531,22 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val usuarios by sesionVm.usuarios.collectAsState()
             val actual by sesionVm.usuarioActual.collectAsState()
 
+            var errorUsuario by remember { mutableStateOf<String?>(null) }
+
             PantallaUsuarios(
                 usuarios = usuarios,
                 usuarioActual = actual,
                 esAdmin = actual?.rol == Rol.ADMINISTRADOR,
+                error = errorUsuario,
                 onCrearUsuario = { nombre, clave, rol ->
-                    sesionVm.crearUsuario(nombre, clave, rol, hoy())
+                    scope.launch {
+                        errorUsuario = when (sesionVm.crearUsuario(nombre, clave, rol, hoy())) {
+                            ResultadoAltaUsuario.CREADO -> null
+                            ResultadoAltaUsuario.NOMBRE_REPETIDO -> "Ya existe un usuario con ese nombre."
+                            ResultadoAltaUsuario.SIN_PERMISO -> "Solo el administrador puede crear usuarios."
+                            ResultadoAltaUsuario.DATOS_INCOMPLETOS -> "Falta el usuario o la contrasena."
+                        }
+                    }
                 },
                 onPermisos = { navController.navigate(RUTA_PERMISOS) },
                 onAtras = atras

@@ -67,22 +67,35 @@ class SesionViewModel @Inject constructor(
     /** El primer usuario de la app siempre es administrador. */
     suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario? {
         if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
+        if (repo.existeUsuario(nombreUsuario)) return null
         val admin = repo.crearUsuarioAdministrador(nombreUsuario.trim(), contrasena)
         _usuarioActual.value = admin
         return admin
     }
 
     /** Solo el administrador puede; devuelve null si quien pide no tiene permiso. */
-    /** Solo el administrador puede. Devuelve null si quien pide no tiene permiso. */
-    fun crearUsuario(nombreUsuario: String, contrasena: String, rol: Rol, fecha: String) {
-        val quienCrea = _usuarioActual.value ?: return
-        if (nombreUsuario.isBlank() || contrasena.isBlank()) return
-        viewModelScope.launch {
-            val creado = repo.crearUsuario(quienCrea, nombreUsuario.trim(), contrasena, rol)
-            if (creado != null) {
-                repo.registrarLog(fecha, "manual", "Alta de usuario " + creado.nombreUsuario)
-            }
-        }
+    /**
+     * Crea un usuario y devuelve que paso, para que la pantalla lo diga.
+     *
+     * Es `suspend` y no un `launch` escondido porque quien llama necesita el
+     * resultado: no es lo mismo "no eres administrador" que "ese nombre ya
+     * existe", y la pantalla tiene que poder distinguirlos.
+     */
+    suspend fun crearUsuario(
+        nombreUsuario: String,
+        contrasena: String,
+        rol: Rol,
+        fecha: String
+    ): ResultadoAltaUsuario {
+        val quienCrea = _usuarioActual.value ?: return ResultadoAltaUsuario.SIN_PERMISO
+        if (nombreUsuario.isBlank() || contrasena.isBlank()) return ResultadoAltaUsuario.DATOS_INCOMPLETOS
+        if (repo.existeUsuario(nombreUsuario)) return ResultadoAltaUsuario.NOMBRE_REPETIDO
+
+        val creado = repo.crearUsuario(quienCrea, nombreUsuario.trim(), contrasena, rol)
+            ?: return ResultadoAltaUsuario.SIN_PERMISO
+
+        repo.registrarLog(fecha, "manual", "Alta de usuario " + creado.nombreUsuario)
+        return ResultadoAltaUsuario.CREADO
     }
 
     fun elegirModo(equipo: Boolean) {
@@ -101,3 +114,6 @@ class SesionViewModel @Inject constructor(
 
     fun cerrarSesion() { _usuarioActual.value = null }
 }
+
+/** Que paso al intentar dar de alta un usuario. */
+enum class ResultadoAltaUsuario { CREADO, NOMBRE_REPETIDO, SIN_PERMISO, DATOS_INCOMPLETOS }

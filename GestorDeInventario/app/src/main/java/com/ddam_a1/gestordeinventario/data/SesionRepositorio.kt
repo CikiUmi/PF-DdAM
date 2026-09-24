@@ -19,6 +19,16 @@ interface SesionRepositorio {
     /** "Es el primer uso de la app" del diagrama de flujo: no hay ni un usuario. */
     suspend fun esPrimerUso(): Boolean
 
+    /**
+     * Si ya hay alguien con ese nombre.
+     *
+     * Vive en el repositorio y no en el ViewModel porque es una pregunta a los
+     * datos. Cuando entre Room, esto se refuerza ademas con un indice UNIQUE en
+     * la columna: la validacion de aqui da el mensaje bonito, y el indice
+     * garantiza que no se cuele ni por una condicion de carrera.
+     */
+    suspend fun existeUsuario(nombreUsuario: String): Boolean
+
     suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario
     suspend fun crearUsuario(quienCrea: Usuario, nombreUsuario: String, contrasena: String, rol: Rol): Usuario?
 
