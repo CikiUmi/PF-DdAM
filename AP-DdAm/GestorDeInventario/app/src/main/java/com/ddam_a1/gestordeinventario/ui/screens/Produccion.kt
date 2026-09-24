@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.ui.pantallas
+package com.ddam_a1.gestordeinventario.ui.screens
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -7,19 +7,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
+import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
+import com.ddam_a1.gestordeinventario.data.InventarioMateriales
+import com.ddam_a1.gestordeinventario.data.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.cant
-import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
-import com.ddam_a1.gestordeinventario.ui.componentes.CampoTexto
-import com.ddam_a1.gestordeinventario.ui.componentes.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.componentes.FilaLista
-import com.ddam_a1.gestordeinventario.ui.componentes.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.hoy
-import com.ddam_a1.gestordeinventario.ui.componentes.DialogoSiNo
+import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
 /** Pantalla 13 · Registrar producción (RF10, RF11). */

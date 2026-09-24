@@ -7,13 +7,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
+import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.componentes.BotonSecundario
-import com.ddam_a1.gestordeinventario.ui.componentes.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.componentes.FilaLista
-import com.ddam_a1.gestordeinventario.datos.Usuarios
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonSecundario
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.data.Usuarios
 
 /** Pantalla 19 · Configuración. */
 @Composable

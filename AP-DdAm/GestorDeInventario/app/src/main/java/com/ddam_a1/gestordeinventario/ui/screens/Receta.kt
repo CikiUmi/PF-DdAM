@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.ui.pantallas
+package com.ddam_a1.gestordeinventario.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,15 +14,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
+import com.ddam_a1.gestordeinventario.data.InventarioMateriales
+import com.ddam_a1.gestordeinventario.data.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.cant
-import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
-import com.ddam_a1.gestordeinventario.ui.componentes.CampoTexto
-import com.ddam_a1.gestordeinventario.ui.componentes.EstadoVacio
-import com.ddam_a1.gestordeinventario.ui.componentes.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.dinero
 
 /** Pantalla 12 · Seleccionar materiales de la receta (RF6). */

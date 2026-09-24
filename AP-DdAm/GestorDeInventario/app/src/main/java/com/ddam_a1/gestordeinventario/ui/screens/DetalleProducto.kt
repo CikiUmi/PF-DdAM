@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.ui.pantallas
+package com.ddam_a1.gestordeinventario.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,18 +10,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
+import com.ddam_a1.gestordeinventario.data.InventarioMateriales
+import com.ddam_a1.gestordeinventario.data.CatalogoProductos
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.cant
-import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.componentes.BotonIcono
-import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
-import com.ddam_a1.gestordeinventario.ui.componentes.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.componentes.FilaLista
-import com.ddam_a1.gestordeinventario.ui.componentes.Iconos
-import com.ddam_a1.gestordeinventario.ui.componentes.Insignia
-import com.ddam_a1.gestordeinventario.ui.componentes.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
+import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.Insignia
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 

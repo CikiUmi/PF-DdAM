@@ -1,10 +1,7 @@
-package com.ddam_a1.gestordeinventario.datos
+package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.datos.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.modelo.ItemVendido
-import com.ddam_a1.gestordeinventario.modelo.Venta
-import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
+import com.ddam_a1.gestordeinventario.modelClasses.ItemVendido
+import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import java.util.UUID
 
 /** Motivo por el que una venta no se pudo registrar (para mostrarlo en pantalla). */

@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.modelo
+package com.ddam_a1.gestordeinventario.modelClasses
 
 
 

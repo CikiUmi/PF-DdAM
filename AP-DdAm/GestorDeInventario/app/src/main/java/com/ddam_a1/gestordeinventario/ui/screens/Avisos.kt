@@ -3,12 +3,12 @@ package com.ddam_a1.gestordeinventario.ui.screens
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.ddam_a1.gestordeinventario.datos.Notificaciones
+import com.ddam_a1.gestordeinventario.data.Notificaciones
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.componentes.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.componentes.FilaLista
-import com.ddam_a1.gestordeinventario.ui.componentes.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.hoy
 
 /** Pantalla 16 · Avisos (RF16, RF17). */

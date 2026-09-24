@@ -1,7 +1,6 @@
-package com.ddam_a1.gestordeinventario.datos
+package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.datos.InventarioMateriales
-import com.ddam_a1.gestordeinventario.modelo.Aviso
+import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import java.text.SimpleDateFormat
 import java.util.Locale
 

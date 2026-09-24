@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.ui.componentes
+package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor

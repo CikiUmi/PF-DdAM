@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.ddam_a1.gestordeinventario.ui.navegacion.GestorNavHost
-import com.ddam_a1.gestordeinventario.ui.pantallas.PantallaLogin
+import com.ddam_a1.gestordeinventario.ui.navigation.GestorNavHost
+import com.ddam_a1.gestordeinventario.ui.screens.PantallaLogin
 import com.ddam_a1.gestordeinventario.ui.theme.GestorDeInventarioTheme
 
 class MainActivity : ComponentActivity() {

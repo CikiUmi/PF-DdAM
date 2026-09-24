@@ -1,6 +1,4 @@
-package com.ddam_a1.gestordeinventario.modelo
-
-import com.ddam_a1.gestordeinventario.modelo.Venta
+package com.ddam_a1.gestordeinventario.modelClasses
 
 // RF24: períodos disponibles para filtrar métricas
 enum class Periodo { DIARIO, SEMANAL, MENSUAL }

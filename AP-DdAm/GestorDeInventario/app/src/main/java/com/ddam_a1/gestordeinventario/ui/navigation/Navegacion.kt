@@ -8,7 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.componentes.DestinoBarra
+import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaAvisos
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaCatalogo
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaConfiguracion

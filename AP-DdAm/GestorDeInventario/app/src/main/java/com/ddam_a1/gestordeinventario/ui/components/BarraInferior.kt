@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.ui.componentes
+package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -5,10 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.ddam_a1.gestordeinventario.modelo.Usuario
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 
 /** Estado que recuerda la interfaz. Los datos viven en los módulos. */
 object EstadoApp {

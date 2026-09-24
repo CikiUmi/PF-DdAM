@@ -1,6 +1,6 @@
-package com.ddam_a1.gestordeinventario.datos
+package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.modelo.RegistroLog
+import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import java.util.UUID
 
 /**

@@ -1,14 +1,11 @@
-package com.ddam_a1.gestordeinventario.ui.pantallas
+package com.ddam_a1.gestordeinventario.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +15,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.modelo.Usuario
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.componentes.*
-import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.datos.Usuarios
+import com.ddam_a1.gestordeinventario.modelClasses.Usuario
+import com.ddam_a1.gestordeinventario.ui.components.*
+import com.ddam_a1.gestordeinventario.data.Usuarios
 
 /** Pantalla 1 · Iniciar sesión (RF28). */
 @Composable

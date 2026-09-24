@@ -1,7 +1,7 @@
-package com.ddam_a1.gestordeinventario.datos
+package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.modelo.Periodo
-import com.ddam_a1.gestordeinventario.modelo.Venta
+import com.ddam_a1.gestordeinventario.modelClasses.Periodo
+import com.ddam_a1.gestordeinventario.modelClasses.Venta
 
 /**
  * Módulo: Rendimiento del negocio

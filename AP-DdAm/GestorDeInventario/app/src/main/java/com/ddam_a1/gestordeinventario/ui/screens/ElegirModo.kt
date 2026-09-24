@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.EstadoApp
-import com.ddam_a1.gestordeinventario.ui.componentes.*
-import com.ddam_a1.gestordeinventario.datos.Usuarios
+import com.ddam_a1.gestordeinventario.ui.components.*
+import com.ddam_a1.gestordeinventario.data.Usuarios
 
 /** Pantalla 3 · Elegir modo individual o equipo. */
 @Composable
