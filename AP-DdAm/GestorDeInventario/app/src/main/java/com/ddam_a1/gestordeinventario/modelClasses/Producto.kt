@@ -1,0 +1,14 @@
+package com.ddam_a1.gestordeinventario.modelo
+
+
+
+data class Producto(
+    val id: String,
+    var nombre: String,
+    var precioVenta: Double,       // RF7
+    var esBajoPedido: Boolean,     // RF4
+    val receta: MutableList<IngredienteReceta> = mutableListOf(), // RF6
+    var stockDisponible: Int = 0,  // RF10
+    var costoProduccion: Double = 0.0, // RF5
+    var caducidadMasCercana: String? = null // RF10
+)

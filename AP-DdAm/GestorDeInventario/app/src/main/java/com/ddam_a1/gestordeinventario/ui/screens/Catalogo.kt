@@ -1,0 +1,95 @@
+package com.ddam_a1.gestordeinventario.ui.pantallas
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.datos.CatalogoProductos
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.EstadoApp
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraBusqueda
+import com.ddam_a1.gestordeinventario.ui.componentes.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.componentes.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.componentes.ChipFiltro
+import com.ddam_a1.gestordeinventario.ui.componentes.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.componentes.Insignia
+import com.ddam_a1.gestordeinventario.ui.componentes.TarjetaSuave
+import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
+import com.ddam_a1.gestordeinventario.ui.componentes.DestinoBarra
+
+/** Pantalla 9 · Catálogo de productos (RF8). */
+@Composable
+fun PantallaCatalogo(
+    onProducto: (String) -> Unit,
+    onNuevoProducto: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit
+) {
+    EstadoApp.version
+    var texto by remember { mutableStateOf("") }
+    var filtro by remember { mutableStateOf(0) } // 0 todos · 1 con stock · 2 bajo pedido
+
+    val base = if (texto.isBlank()) CatalogoProductos.obtenerTodos()
+    else CatalogoProductos.buscarProducto(texto)
+    val lista = when (filtro) {
+        1 -> base.filter { producto -> !producto.esBajoPedido }
+        2 -> base.filter { producto -> producto.esBajoPedido }
+        else -> base
+    }
+
+    Marco(
+        barra = { BarraSuperior("Catálogo", base.size.toString() + " productos") },
+        pie = { BarraInferior(DestinoBarra.CATALOGO, onDestino) }
+    ) {
+        item { BarraBusqueda(texto, "Buscar y filtrar producto", { texto = it }) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChipFiltro("Todos", filtro == 0, { filtro = 0 })
+                ChipFiltro("Con stock", filtro == 1, { filtro = 1 })
+                ChipFiltro("Bajo pedido", filtro == 2, { filtro = 2 })
+            }
+        }
+        if (lista.isEmpty()) {
+            item { EstadoVacio("Sin productos", "Agrega el primero para poder vender") }
+        } else {
+            items(lista.size) { i ->
+                val producto = lista[i]
+                val costo = CatalogoProductos.calcularCostoProduccion(producto.id)
+                TarjetaSuave(onClick = { onProducto(producto.id) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(producto.nombre, style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Costo " + dinero(costo) + " · Precio " + dinero(producto.precioVenta),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (producto.esBajoPedido) {
+                            Insignia("Bajo pedido", MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
+                        } else {
+                            Insignia(producto.stockDisponible.toString() + " pza", MaterialTheme.coloresExtra.correct.color, MaterialTheme.coloresExtra.correct.colorContainer)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Spacer(Modifier.height(4.dp))
+            BotonPrincipal("Nuevo producto") { onNuevoProducto() }
+        }
+    }
+}
