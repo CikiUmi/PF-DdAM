@@ -1,0 +1,84 @@
+package com.ddam_a1.gestordeinventario.viewModel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ddam_a1.gestordeinventario.data.SesionRepositorio
+import com.ddam_a1.gestordeinventario.modelClasses.Rol
+import com.ddam_a1.gestordeinventario.modelClasses.Usuario
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+// ============================================================
+//  EL VIEWMODEL DE LA SESION
+//
+//  Login, alta de administrador, modo individual/equipo, usuarios y permisos.
+//  Ninguna de esas pantallas toca materiales, productos ni ventas, por eso va
+//  aparte del de inventario.
+//
+//  Aqui es donde termina de vivir `EstadoApp.usuario`.
+// ============================================================
+
+@HiltViewModel
+class SesionViewModel @Inject constructor(
+    private val repo: SesionRepositorio
+) : ViewModel() {
+
+    val usuarios: StateFlow<List<Usuario>> = repo.usuariosStream()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Quien esta usando la app ahora mismo.
+     *
+     * Es `null` mientras nadie ha entrado. Vive en el ViewModel y no en un
+     * objeto global para que se muera junto con la app y no sobreviva a un
+     * cierre de sesion por accidente.
+     */
+    private val _usuarioActual = MutableStateFlow<Usuario?>(null)
+    val usuarioActual: StateFlow<Usuario?> = _usuarioActual.asStateFlow()
+
+    suspend fun esPrimerUso(): Boolean = repo.esPrimerUso()
+
+    /** Devuelve el usuario si entro, o null si la contrasena esta mal. */
+    suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario? {
+        if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
+        val usuario = repo.iniciarSesion(nombreUsuario.trim(), contrasena)
+        if (usuario != null) _usuarioActual.value = usuario
+        return usuario
+    }
+
+    /** El primer usuario de la app siempre es administrador. */
+    suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario? {
+        if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
+        val admin = repo.crearUsuarioAdministrador(nombreUsuario.trim(), contrasena)
+        _usuarioActual.value = admin
+        return admin
+    }
+
+    /** Solo el administrador puede; devuelve null si quien pide no tiene permiso. */
+    suspend fun crearUsuario(nombreUsuario: String, contrasena: String, rol: Rol): Usuario? {
+        val quienCrea = _usuarioActual.value ?: return null
+        if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
+        return repo.crearUsuario(quienCrea, nombreUsuario.trim(), contrasena, rol)
+    }
+
+    fun elegirModo(equipo: Boolean) { viewModelScope.launch { repo.elegirModo(equipo) } }
+
+    suspend fun esModoEquipo(): Boolean = repo.esModoEquipo()
+
+    fun tienePermiso(usuario: Usuario, accion: String): Boolean = repo.tienePermiso(usuario, accion)
+
+    /** Permisos del rol elegido, sin necesidad de un usuario de verdad. */
+    fun permisosDelRol(rol: Rol, accion: String): Boolean = when (rol) {
+        Rol.ADMINISTRADOR -> true
+        Rol.ENCARGADO -> accion in listOf("registrar_venta", "editar_inventario", "ver_estadisticas")
+        Rol.EMPLEADO -> accion == "registrar_venta"
+    }
+
+    fun cerrarSesion() { _usuarioActual.value = null }
+}
