@@ -20,16 +20,19 @@ fun BotonSecundario(
     texto: String,
     modifier: Modifier = Modifier,
     color: Color? = null,
+    /** Igual que en BotonPrincipal, para que los dos se comporten parejo. */
+    habilitado: Boolean = true,
     onClick: () -> Unit
 ) {
-    val c = color ?: MaterialTheme.colorScheme.primary
+    val base = color ?: MaterialTheme.colorScheme.primary
+    val c = if (habilitado) base else MaterialTheme.colorScheme.outline
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
             .clip(RoundedCornerShape(16.dp))
             .border(1.5.dp, c, RoundedCornerShape(16.dp))
-            .clickable { onClick() },
+            .clickable(enabled = habilitado) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(texto, style = MaterialTheme.typography.labelLarge, color = c)

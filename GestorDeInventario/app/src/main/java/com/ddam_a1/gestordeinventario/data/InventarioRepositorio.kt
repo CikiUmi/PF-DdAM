@@ -47,6 +47,15 @@ interface InventarioRepositorio {
     suspend fun definirStockMinimo(materialId: String, minimo: Double): Boolean
     suspend fun definirDiasAvisoCaducidad(materialId: String, dias: Int): Boolean
 
+    /**
+     * Suma existencias a un material: una compra, una reposicion.
+     *
+     * Faltaba por completo. `editarMaterial` solo cambia nombre y costo, asi
+     * que la unica forma de tener cantidad era al darlo de alta; despues de eso
+     * el inventario solo podia bajar.
+     */
+    suspend fun agregarExistenciasMaterial(materialId: String, cantidad: Double): Boolean
+
     /** Lee uno por id. Es `suspend` porque con Room va a consultar la base. */
     suspend fun leerMaterial(id: String): Material?
 
@@ -74,6 +83,9 @@ interface InventarioRepositorio {
 
     suspend fun asignarPrecioVenta(productoId: String, precio: Double): Boolean
     suspend fun registrarExistencias(productoId: String, cantidad: Int, descontarMaterialesAhora: Boolean): Boolean
+    /** Umbral de aviso del producto, en piezas (RF19). */
+    suspend fun definirStockMinimoProducto(productoId: String, minimo: Int): Boolean
+
     suspend fun leerProducto(id: String): Producto?
     suspend fun buscarProducto(texto: String): List<Producto>
     suspend fun calcularCostoProduccion(productoId: String): Double
@@ -90,6 +102,7 @@ interface InventarioRepositorio {
     // completo para decidir que avisar.
 
     suspend fun revisarStockBajo(): List<Aviso>
+    suspend fun revisarStockBajoProductos(): List<Aviso>
     suspend fun revisarCaducidadesProximas(fechaHoy: String): List<Aviso>
 
     // ---------- BITACORA Y EXPORTACION ----------

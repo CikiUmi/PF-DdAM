@@ -87,6 +87,13 @@ class InventarioRepositorioMemoria @Inject constructor() : InventarioRepositorio
         return ok
     }
 
+    override suspend fun agregarExistenciasMaterial(materialId: String, cantidad: Double): Boolean {
+        if (cantidad <= 0.0) return false
+        val ok = InventarioMateriales.devolverCantidad(materialId, cantidad)
+        refrescarMateriales()
+        return ok
+    }
+
     override suspend fun leerMaterial(id: String): Material? =
         InventarioMateriales.obtenerMaterialPorId(id)
 
@@ -149,6 +156,13 @@ class InventarioRepositorioMemoria @Inject constructor() : InventarioRepositorio
         return ok
     }
 
+    override suspend fun definirStockMinimoProducto(productoId: String, minimo: Int): Boolean {
+        val producto = CatalogoProductos.obtenerProductoPorId(productoId) ?: return false
+        producto.stockMinimo = minimo
+        refrescarProductos()
+        return true
+    }
+
     override suspend fun leerProducto(id: String): Producto? =
         CatalogoProductos.obtenerProductoPorId(id)
 
@@ -185,6 +199,9 @@ class InventarioRepositorioMemoria @Inject constructor() : InventarioRepositorio
     // ---------- AVISOS ----------
 
     override suspend fun revisarStockBajo(): List<Aviso> = Notificaciones.revisarStockBajo()
+
+    override suspend fun revisarStockBajoProductos(): List<Aviso> =
+        Notificaciones.revisarStockBajoProductos()
 
     override suspend fun revisarCaducidadesProximas(fechaHoy: String): List<Aviso> =
         Notificaciones.revisarCaducidadesProximas(fechaHoy)

@@ -31,6 +31,7 @@ fun PantallaFormularioProducto(
     var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
     var precio by remember(producto) { mutableStateOf(producto?.precioVenta?.toString() ?: "") }
     var bajoPedido by remember(producto) { mutableStateOf(producto?.esBajoPedido ?: false) }
+    var minimo by remember(producto) { mutableStateOf(producto?.stockMinimo?.toString() ?: "") }
 
     val valido = nombre.isNotBlank() && precio.toDoubleOrNull() != null
 
@@ -50,6 +51,14 @@ fun PantallaFormularioProducto(
                 "Se elabora al momento. La venta descuenta los materiales.",
                 bajoPedido, { bajoPedido = true })
         }
+        // Solo los productos CON stock pueden quedarse bajos. Uno bajo pedido se
+        // elabora al momento, asi que preguntarle un umbral no tiene sentido.
+        if (!bajoPedido) {
+            item {
+                CampoTexto(minimo, "Avisarme cuando queden", { minimo = it },
+                    soloNumeros = true, sufijo = "piezas")
+            }
+        }
         item {
             Spacer(Modifier.height(8.dp))
             BotonPrincipal("Guardar", habilitado = valido) {
@@ -57,7 +66,8 @@ fun PantallaFormularioProducto(
                     DatosProducto(
                         nombre = nombre.trim(),
                         precioVenta = precio.toDoubleOrNull() ?: 0.0,
-                        esBajoPedido = bajoPedido
+                        esBajoPedido = bajoPedido,
+                        stockMinimo = if (bajoPedido) 0 else (minimo.toIntOrNull() ?: 0)
                     )
                 )
             }

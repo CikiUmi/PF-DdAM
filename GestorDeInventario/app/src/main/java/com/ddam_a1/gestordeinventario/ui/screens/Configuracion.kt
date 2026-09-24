@@ -47,6 +47,17 @@ fun PantallaConfiguracion(
                 onClick = { onExportar() }
             )
         }
+        // Cerrar sesion va ANTES del historial, no despues.
+        //
+        // Estaba al final, debajo de hasta 15 renglones de bitacora. Con pocos
+        // movimientos se alcanzaba a ver; en cuanto registrabas una venta (que
+        // deja su propia entrada) el boton se iba abajo del doblez y parecia
+        // haber desaparecido.
+        item { EncabezadoSeccion("Sesion") }
+        item {
+            BotonSecundario("Cerrar sesion", color = MaterialTheme.colorScheme.error) { onSalir() }
+        }
+
         item { EncabezadoSeccion("Historial de cambios - " + bitacora.size) }
         if (bitacora.isEmpty()) {
             item {
@@ -60,10 +71,6 @@ fun PantallaConfiguracion(
                 FilaLista(titulo = registro.descripcion,
                     subtitulo = registro.fecha + " - " + registro.tipo)
             }
-        }
-        item {
-            Spacer(Modifier.height(8.dp))
-            BotonSecundario("Cerrar sesion", color = MaterialTheme.colorScheme.error) { onSalir() }
         }
         item {
             Text("Los datos se guardan solo en este dispositivo.",

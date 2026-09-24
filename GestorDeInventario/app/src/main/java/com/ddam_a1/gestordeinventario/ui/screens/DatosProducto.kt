@@ -4,5 +4,7 @@ package com.ddam_a1.gestordeinventario.ui.screens
 data class DatosProducto(
     val nombre: String,
     val precioVenta: Double,
-    val esBajoPedido: Boolean
+    val esBajoPedido: Boolean,
+    /** Avisar cuando queden estas piezas o menos. 0 = no avisar. */
+    val stockMinimo: Int
 )

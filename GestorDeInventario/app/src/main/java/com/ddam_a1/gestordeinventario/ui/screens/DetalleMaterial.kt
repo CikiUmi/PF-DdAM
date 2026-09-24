@@ -42,12 +42,16 @@ fun PantallaDetalleMaterial(
     material: Material?,
     bajo: Boolean,
     usadoEn: List<UsoEnProducto>,
-    onAgregarCaducidad: (String) -> Unit,
+    onEntrada: (cantidad: Double, caducidad: String?) -> Unit,
     onProducto: (String) -> Unit,
     onEditar: () -> Unit,
     onAtras: () -> Unit
 ) {
     var nuevaFecha by remember { mutableStateOf("") }
+    var entrada by remember { mutableStateOf("") }
+
+    // "Caduca" no es una pregunta suelta: es lo que dijiste al darlo de alta.
+    val caduca = material != null && material.diasAvisoCaducidad > 0
 
     if (material == null) {
         Marco(barra = { BarraSuperior("Material", onAtras = onAtras) }) {
@@ -98,30 +102,48 @@ fun PantallaDetalleMaterial(
             }
         }
 
-        item { EncabezadoSeccion("Fechas de caducidad (RF9)") }
-        if (material.fechasCaducidad.isEmpty()) {
-            item {
-                Text("Este material no registra caducidad.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            items(material.fechasCaducidad.size) { i ->
-                FilaLista("Lote " + (i + 1), "Caduca el " + material.fechasCaducidad[i])
-            }
-        }
+        // ---------- entrada de inventario ----------
+        //
+        // Cantidad y caducidad se piden JUNTAS porque son una sola cosa: un
+        // lote que entra. Separadas, nada garantizaba que coincidieran.
+        item { EncabezadoSeccion("Entrada de inventario") }
         item {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.weight(1f)) {
-                    CampoTexto(nuevaFecha, "Nueva fecha (aaaa-mm-dd)", { nuevaFecha = it })
+                    CampoTexto(entrada, "Cantidad que entra", { entrada = it },
+                        soloNumeros = true, sufijo = material.unidadMedida)
                 }
-                Box(Modifier.width(120.dp)) {
-                    BotonSecundario("Agregar") {
-                        // La pantalla no guarda nada: avisa y limpia su campo.
-                        onAgregarCaducidad(nuevaFecha)
-                        nuevaFecha = ""
+                if (caduca) {
+                    Box(Modifier.weight(1f)) {
+                        CampoTexto(nuevaFecha, "Caduca el (aaaa-mm-dd)", { nuevaFecha = it })
                     }
+                }
+            }
+        }
+        item {
+            val cantidadValida = (entrada.toDoubleOrNull() ?: 0.0) > 0.0
+            // Si el material caduca, el lote NO entra sin su fecha.
+            val listo = cantidadValida && (!caduca || nuevaFecha.isNotBlank())
+            BotonSecundario("Registrar entrada", habilitado = listo) {
+                onEntrada(entrada.toDoubleOrNull() ?: 0.0, if (caduca) nuevaFecha else null)
+                entrada = ""
+                nuevaFecha = ""
+            }
+        }
+
+        // ---------- lotes registrados ----------
+        if (caduca) {
+            item { EncabezadoSeccion("Fechas de caducidad (RF9)") }
+            if (material.fechasCaducidad.isEmpty()) {
+                item {
+                    Text("Todavia no hay lotes con fecha registrada.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                items(material.fechasCaducidad.size) { i ->
+                    FilaLista("Lote " + (i + 1), "Caduca el " + material.fechasCaducidad[i])
                 }
             }
         }

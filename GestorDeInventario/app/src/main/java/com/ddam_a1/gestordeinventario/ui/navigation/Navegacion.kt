@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -18,6 +19,7 @@ import com.ddam_a1.gestordeinventario.data.ErrorVenta
 import com.ddam_a1.gestordeinventario.data.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.Rol
+import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
 import com.ddam_a1.gestordeinventario.ui.hoy
 import com.ddam_a1.gestordeinventario.ui.screens.ResumenInicio
 import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
@@ -266,9 +268,16 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 material = material,
                 bajo = material != null && inventarioVm.esStockBajo(material),
                 usadoEn = usadoEn,
-                onAgregarCaducidad = { caducidad ->
+                onEntrada = { cantidad, caducidad ->
                     if (material != null) {
-                        inventarioVm.agregarLoteConCaducidad(material.id, material.nombre, caducidad, hoy())
+                        inventarioVm.registrarEntradaMaterial(
+                            materialId = material.id,
+                            nombreMaterial = material.nombre,
+                            cantidad = cantidad,
+                            unidad = material.unidadMedida,
+                            caducidad = caducidad,
+                            fecha = hoy()
+                        )
                     }
                 },
                 onProducto = { productoId -> navController.navigate(rutaDetalleProducto(productoId)) },
@@ -376,11 +385,13 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                             nombre = datos.nombre,
                             precioVenta = datos.precioVenta,
                             esBajoPedido = datos.esBajoPedido,
+                            stockMinimo = datos.stockMinimo,
                             fecha = hoy()
                         )
-                        // Un producto recien creado se va derecho a su receta.
+                        // Un producto recien creado se va derecho a su receta, y
+                        // la receta se entera de que viene de un alta.
                         if (id == null && nuevoId != null) {
-                            navController.navigate(rutaReceta(nuevoId))
+                            navController.navigate(rutaReceta(nuevoId, esNuevo = true))
                         } else {
                             navController.popBackStack()
                         }
@@ -392,9 +403,16 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
         composable(
             route = RUTA_RECETA,
-            arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
+            arguments = listOf(
+                navArgument(ARG_ID) { type = NavType.StringType },
+                navArgument(ARG_NUEVO) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
         ) { entrada ->
             val productoId = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val esNuevo = entrada.arguments?.getBoolean(ARG_NUEVO) ?: false
             val productos by inventarioVm.productos.collectAsState()
             val materiales by inventarioVm.materiales.collectAsState()
             val producto = productos.find { it.id == productoId }
@@ -404,7 +422,15 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 materiales = materiales,
                 recetaActual = producto?.receta.orEmpty()
                     .associate { it.materialId to it.cantidadUsada },
+                esProductoNuevo = esNuevo,
                 onGuardar = { ingredientes -> inventarioVm.guardarReceta(productoId, ingredientes) },
+                onDescartar = {
+                    // El producto ya se habia creado para poder colgarle la
+                    // receta. Si te arrepientes, se borra y se regresa al
+                    // catalogo, saltandose el formulario que quedo en la pila.
+                    inventarioVm.eliminarProducto(productoId)
+                    navController.popBackStack(RUTA_CATALOGO, inclusive = false)
+                },
                 onAtras = atras
             )
         }
@@ -520,9 +546,19 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
 
             PantallaAvisos(
-                stockBajo = avisos.filter { it.tipo == "stock_bajo" },
-                porCaducar = avisos.filter { it.tipo == "caducidad" },
-                onMaterial = { id -> navController.navigate(rutaDetalleMaterial(id)) },
+                stockBajo = avisos.filter {
+                    it.tipo == TipoAviso.STOCK_BAJO_MATERIAL || it.tipo == TipoAviso.STOCK_BAJO_PRODUCTO
+                },
+                porCaducar = avisos.filter { it.tipo == TipoAviso.CADUCIDAD },
+                // El mismo renglon lleva a un material o a un producto segun de
+                // que avise. El `when` sobre el enum obliga a cubrir los tres.
+                onAviso = { aviso ->
+                    when (aviso.tipo) {
+                        TipoAviso.STOCK_BAJO_MATERIAL,
+                        TipoAviso.CADUCIDAD -> navController.navigate(rutaDetalleMaterial(aviso.referenciaId))
+                        TipoAviso.STOCK_BAJO_PRODUCTO -> navController.navigate(rutaDetalleProducto(aviso.referenciaId))
+                    }
+                },
                 onAtras = atras
             )
         }

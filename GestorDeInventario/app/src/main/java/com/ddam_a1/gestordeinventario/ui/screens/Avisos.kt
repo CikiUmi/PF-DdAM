@@ -14,10 +14,13 @@ import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 fun PantallaAvisos(
     stockBajo: List<Aviso>,
     porCaducar: List<Aviso>,
-    onMaterial: (String) -> Unit,
+    onAviso: (Aviso) -> Unit,
     onAtras: () -> Unit
 ) {
     Marco(barra = { BarraSuperior("Avisos", onAtras = onAtras) }) {
+        // Ahora hay dos clases de stock bajo: materiales y productos
+        // terminados. Al tocarlos llevan a sitios distintos, y de eso se
+        // encarga quien navega.
         item { EncabezadoSeccion("Stock bajo (" + stockBajo.size + ")") }
         if (stockBajo.isEmpty()) {
             item {
@@ -29,7 +32,7 @@ fun PantallaAvisos(
             items(stockBajo.size) { i ->
                 val aviso = stockBajo[i]
                 FilaLista(titulo = aviso.mensaje, colorPunto = MaterialTheme.colorScheme.error,
-                    onClick = { onMaterial(aviso.materialId) })
+                    onClick = { onAviso(aviso) })
             }
         }
 
@@ -44,7 +47,7 @@ fun PantallaAvisos(
             items(porCaducar.size) { i ->
                 val aviso = porCaducar[i]
                 FilaLista(titulo = aviso.mensaje, colorPunto = MaterialTheme.colorScheme.tertiary,
-                    onClick = { onMaterial(aviso.materialId) })
+                    onClick = { onAviso(aviso) })
             }
         }
 

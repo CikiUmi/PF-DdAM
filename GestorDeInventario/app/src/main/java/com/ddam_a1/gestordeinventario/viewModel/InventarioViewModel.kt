@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -82,8 +83,12 @@ class InventarioViewModel @Inject constructor(
      * inventario: si baja el stock de algo, el aviso aparece sin que nadie
      * llame a nada.
      */
-    fun avisos(fechaHoy: String): Flow<List<Aviso>> = repo.materialesStream()
-        .map { repo.revisarStockBajo() + repo.revisarCaducidadesProximas(fechaHoy) }
+    fun avisos(fechaHoy: String): Flow<List<Aviso>> =
+        combine(repo.materialesStream(), repo.productosStream()) { _, _ ->
+            repo.revisarStockBajo() +
+                repo.revisarStockBajoProductos() +
+                repo.revisarCaducidadesProximas(fechaHoy)
+        }
 
     // ---------- MATERIALES ----------
     //
@@ -101,6 +106,42 @@ class InventarioViewModel @Inject constructor(
     }
 
     fun eliminarMaterial(id: String) { viewModelScope.launch { repo.eliminarMaterial(id) } }
+
+    /**
+     * Registra un LOTE que entra al inventario: cuanto y, si el material
+     * caduca, cuando.
+     *
+     * Van juntos porque son una sola cosa. Antes eran dos botones distintos
+     * (sumar cantidad por un lado, agregar fecha por el otro) y nada obligaba a
+     * que coincidieran: podias sumar 10 kg sin decir cuando caducan, o registrar
+     * una caducidad de un lote que nunca entro.
+     *
+     * `caducidad` en null o vacio significa que este material no caduca.
+     */
+    fun registrarEntradaMaterial(
+        materialId: String,
+        nombreMaterial: String,
+        cantidad: Double,
+        unidad: String,
+        caducidad: String?,
+        fecha: String
+    ) {
+        if (cantidad <= 0.0) return
+        viewModelScope.launch {
+            repo.agregarExistenciasMaterial(materialId, cantidad)
+
+            val tieneCaducidad = !caducidad.isNullOrBlank()
+            if (tieneCaducidad) {
+                repo.agregarFechaCaducidad(materialId, caducidad!!.trim())
+            }
+
+            repo.registrarLog(
+                fecha, "manual",
+                "Entrada de " + cantidad + " " + unidad + " de " + nombreMaterial +
+                    (if (tieneCaducidad) " (caduca el " + caducidad!!.trim() + ")" else "")
+            )
+        }
+    }
 
     fun agregarFechaCaducidad(materialId: String, fecha: String) {
         if (fecha.isBlank()) return
@@ -151,15 +192,6 @@ class InventarioViewModel @Inject constructor(
                 fecha, "manual",
                 (if (id == null) "Alta" else "Edicion") + " de material " + destino.nombre
             )
-        }
-    }
-
-    /** Agrega un lote con su caducidad y lo deja anotado en la bitacora. */
-    fun agregarLoteConCaducidad(materialId: String, nombreMaterial: String, caducidad: String, fecha: String) {
-        if (caducidad.isBlank()) return
-        viewModelScope.launch {
-            repo.agregarFechaCaducidad(materialId, caducidad.trim())
-            repo.registrarLog(fecha, "manual", "Caducidad " + caducidad.trim() + " en " + nombreMaterial)
         }
     }
 
@@ -222,11 +254,15 @@ class InventarioViewModel @Inject constructor(
         nombre: String,
         precioVenta: Double,
         esBajoPedido: Boolean,
+        stockMinimo: Int,
         fecha: String
     ): String? {
         if (nombre.isBlank()) return null
+        // Un producto bajo pedido no tiene stock, asi que tampoco umbral.
+        val umbral = if (esBajoPedido) 0 else stockMinimo
         return if (id == null) {
             val creado = repo.crearProducto(nombre.trim(), precioVenta, esBajoPedido)
+            repo.definirStockMinimoProducto(creado.id, umbral)
             repo.registrarLog(fecha, "manual", "Alta de producto " + creado.nombre)
             creado.id
         } else {
@@ -234,6 +270,7 @@ class InventarioViewModel @Inject constructor(
             val existente = repo.leerProducto(id)
             if (existente != null) {
                 existente.esBajoPedido = esBajoPedido
+                repo.definirStockMinimoProducto(id, umbral)
                 repo.registrarLog(fecha, "manual", "Edicion de producto " + existente.nombre)
             }
             id

@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -19,6 +23,7 @@ import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 import com.ddam_a1.gestordeinventario.ui.dinero
@@ -39,9 +44,21 @@ fun PantallaReceta(
     nombreProducto: String,
     materiales: List<Material>,
     recetaActual: Map<String, Double>,
+    esProductoNuevo: Boolean,
     onGuardar: (Map<String, Double>) -> Unit,
+    onDescartar: () -> Unit,
     onAtras: () -> Unit
 ) {
+    // Si vienes de crear el producto, salirse de aqui es CANCELAR el alta: el
+    // producto ya existe y quedaria a medias, sin receta y sin costo. Por eso se
+    // pregunta en vez de dejarte ir en silencio.
+    var preguntarDescarte by remember { mutableStateOf(false) }
+    val salir = { if (esProductoNuevo) preguntarDescarte = true else onAtras() }
+
+    // El boton fisico de atras tiene que hacer lo mismo que la flecha de la
+    // barra; si no, seria la puerta trasera para dejar el producto huerfano.
+    BackHandler(enabled = esProductoNuevo) { preguntarDescarte = true }
+
     // Texto y no Double: el usuario puede estar a medio escribir "1." y eso no
     // es un numero todavia.
     val cantidades = remember(recetaActual) {
@@ -57,7 +74,7 @@ fun PantallaReceta(
         costo += (entrada.value.toDoubleOrNull() ?: 0.0) * unitario
     }
 
-    Marco(barra = { BarraSuperior("Materiales", nombreProducto, onAtras = onAtras) }) {
+    Marco(barra = { BarraSuperior("Materiales", nombreProducto, onAtras = salir) }) {
         if (materiales.isEmpty()) {
             item { EstadoVacio("No hay materiales", "Agrega materiales al inventario primero") }
         }
@@ -117,5 +134,18 @@ fun PantallaReceta(
                 onAtras()
             }
         }
+    }
+
+    if (preguntarDescarte) {
+        DialogoSiNo(
+            titulo = "Descartar el producto?",
+            mensaje = "Todavia no le pusiste receta a \"" + nombreProducto +
+                "\". Si sales ahora el producto no se guarda.",
+            textoSi = "Descartar",
+            textoNo = "Seguir editando",
+            onSi = { preguntarDescarte = false; onDescartar() },
+            onNo = { preguntarDescarte = false },
+            onCerrar = { preguntarDescarte = false }
+        )
     }
 }

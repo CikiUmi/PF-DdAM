@@ -43,8 +43,19 @@ fun rutaDetalleMaterial(id: String) = "material/" + id
 const val RUTA_DETALLE_PRODUCTO = "producto/{" + ARG_ID + "}"
 fun rutaDetalleProducto(id: String) = "producto/" + id
 
-const val RUTA_RECETA = "receta/{" + ARG_ID + "}"
-fun rutaReceta(productoId: String) = "receta/" + productoId
+/**
+ * La receta lleva un segundo argumento: si el producto se acaba de crear.
+ *
+ *     receta/abc-123             -> editar la receta de uno que ya existia
+ *     receta/abc-123?nuevo=true  -> vienes de darlo de alta
+ *
+ * Con eso la pantalla sabe que salirse de ahi significa CANCELAR el alta, no
+ * solo dejar la receta como estaba.
+ */
+const val ARG_NUEVO = "nuevo"
+const val RUTA_RECETA = "receta/{" + ARG_ID + "}?" + ARG_NUEVO + "={" + ARG_NUEVO + "}"
+fun rutaReceta(productoId: String, esNuevo: Boolean = false) =
+    "receta/" + productoId + "?" + ARG_NUEVO + "=" + esNuevo
 
 const val RUTA_PRODUCCION = "produccion/{" + ARG_ID + "}"
 fun rutaProduccion(productoId: String) = "produccion/" + productoId
