@@ -1,62 +1,94 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
 import com.ddam_a1.gestordeinventario.modelClasses.Periodo
-import com.ddam_a1.gestordeinventario.data.RendimientoNegocio
-import com.ddam_a1.gestordeinventario.ui.*
-import com.ddam_a1.gestordeinventario.ui.components.*
-import com.ddam_a1.gestordeinventario.ui.theme.*
-import com.ddam_a1.gestordeinventario.data.Ventas
+import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
+import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
+import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
+import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
+import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
-/** Pantalla 15 · Historial de ventas (RF12). */
+/**
+ * Pantalla 15 - Historial de ventas (RF12).
+ *
+ * El periodo elegido NO se queda aqui: sube al NavHost. Es la unica forma,
+ * porque de el dependen la lista filtrada y las dos metricas, y esos los
+ * calcula el ViewModel. Si el chip viviera aqui abajo, la pantalla tendria que
+ * pedir el recalculo, y para eso necesitaria conocer al ViewModel.
+ *
+ * `nombreProducto` llega como funcion de busqueda: la pantalla arma el texto
+ * del renglon (eso es presentacion) pero no sale a buscar los productos.
+ */
 @Composable
-fun PantallaHistorialVentas(onNuevaVenta: () -> Unit, onDestino: (DestinoBarra) -> Unit) {
-    EstadoApp.version
-    var periodo by remember { mutableStateOf(Periodo.DIARIO) }
-    val todas = Ventas.obtenerHistorialVentas().reversed()
-    val filtradas = RendimientoNegocio.filtrarVentasPorPeriodo(todas, periodo, hoy())
-
+fun PantallaHistorialVentas(
+    ventas: List<Venta>,
+    nombreProducto: (String) -> String,
+    ingresos: Double,
+    ganancias: Double,
+    periodo: Periodo,
+    onPeriodo: (Periodo) -> Unit,
+    onNuevaVenta: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit
+) {
     Marco(
-        barra = { BarraSuperior("Ventas", "${filtradas.size} en el período") },
+        barra = { BarraSuperior("Ventas", ventas.size.toString() + " en el periodo") },
         pie = { BarraInferior(DestinoBarra.VENTAS, onDestino) }
     ) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChipFiltro("Hoy", periodo == Periodo.DIARIO) { periodo = Periodo.DIARIO }
-                ChipFiltro("Semana", periodo == Periodo.SEMANAL) { periodo = Periodo.SEMANAL }
-                ChipFiltro("Mes", periodo == Periodo.MENSUAL) { periodo = Periodo.MENSUAL }
+                ChipFiltro("Hoy", periodo == Periodo.DIARIO) { onPeriodo(Periodo.DIARIO) }
+                ChipFiltro("Semana", periodo == Periodo.SEMANAL) { onPeriodo(Periodo.SEMANAL) }
+                ChipFiltro("Mes", periodo == Periodo.MENSUAL) { onPeriodo(Periodo.MENSUAL) }
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica("Ingresos", dinero(RendimientoNegocio.calcularIngresos(filtradas)),
-                    "${filtradas.count { !it.cancelada }} ventas", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                TarjetaMetrica("Ganancia", dinero(RendimientoNegocio.calcularGanancias(filtradas)),
-                    null, MaterialTheme.coloresExtra.correct.colorContainer, MaterialTheme.coloresExtra.correct.color, Modifier.weight(1f))
+                TarjetaMetrica(
+                    "Ingresos", dinero(ingresos),
+                    ventas.count { !it.cancelada }.toString() + " ventas",
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.primary,
+                    Modifier.weight(1f)
+                )
+                TarjetaMetrica(
+                    "Ganancia", dinero(ganancias), null,
+                    MaterialTheme.coloresExtra.correct.colorContainer,
+                    MaterialTheme.coloresExtra.correct.color,
+                    Modifier.weight(1f)
+                )
             }
         }
         item { EncabezadoSeccion("Movimientos") }
-        if (filtradas.isEmpty()) {
-            item { EstadoVacio("Sin ventas", "Toca el botón para registrar la primera") }
+        if (ventas.isEmpty()) {
+            item { EstadoVacio("Sin ventas", "Toca el boton para registrar la primera") }
         } else {
-            items(filtradas.size) { i ->
-                val v = filtradas[i]
-                val detalle = v.items.joinToString(", ") { it ->
-                    (CatalogoProductos.obtenerProductoPorId(it.productoId)?.nombre ?: "?") + " x${it.cantidad}"
+            items(ventas.size) { i ->
+                val venta = ventas[i]
+                val detalle = venta.items.joinToString(", ") { item ->
+                    nombreProducto(item.productoId) + " x" + item.cantidad
                 }
                 FilaLista(
                     detalle.ifBlank { "Venta" },
-                    v.fecha + if (v.cancelada) " · cancelada" else "",
-                    dinero(v.total),
+                    venta.fecha + (if (venta.cancelada) " - cancelada" else ""),
+                    dinero(venta.total),
                     null,
-                    if (v.cancelada) MaterialTheme.colorScheme.outline else MaterialTheme.coloresExtra.correct.color
+                    if (venta.cancelada) MaterialTheme.colorScheme.outline
+                    else MaterialTheme.coloresExtra.correct.color
                 )
             }
         }

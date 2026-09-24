@@ -23,19 +23,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-@Preview(name = "Inicio de sesion", showBackground = true, widthDp = 360, heightDp = 800)
-@Composable
-fun VistaPreviaLogin() {
-    GestorDeInventarioTheme {
-        PantallaLogin(onEntrar = {}, onConfigurar = {})
-    }
-}
-
-@Preview(name = "Inicio de sesion - oscuro", showBackground = true, widthDp = 360, heightDp = 800)
-@Composable
-fun VistaPreviaLoginOscuro() {
-    GestorDeInventarioTheme(darkTheme = true) {
-        PantallaLogin(onEntrar = {}, onConfigurar = {})
-    }
-}

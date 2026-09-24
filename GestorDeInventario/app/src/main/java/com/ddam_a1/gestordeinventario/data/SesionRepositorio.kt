@@ -28,6 +28,13 @@ interface SesionRepositorio {
     suspend fun elegirModo(equipo: Boolean)
     suspend fun esModoEquipo(): Boolean
 
+    /**
+     * La bitacora la comparten los dos mundos, asi que los dos repositorios la
+     * exponen. No es duplicar: es que "quien hizo que y cuando" no pertenece ni
+     * al inventario ni a la sesion, los atraviesa.
+     */
+    suspend fun registrarLog(fecha: String, tipo: String, descripcion: String)
+
     /** Tabla de permisos por rol. Calculo puro, no toca la base. */
     fun tienePermiso(usuario: Usuario, accion: String): Boolean
 }

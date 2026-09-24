@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -42,7 +43,18 @@ class SesionViewModel @Inject constructor(
     private val _usuarioActual = MutableStateFlow<Usuario?>(null)
     val usuarioActual: StateFlow<Usuario?> = _usuarioActual.asStateFlow()
 
-    suspend fun esPrimerUso(): Boolean = repo.esPrimerUso()
+    /**
+     * "Es el primer uso" derivado de la lista, no consultado a mano.
+     *
+     * Asi la pantalla de login se entera sola en cuanto se crea el primer
+     * administrador, sin que nadie vuelva a preguntar.
+     */
+    val primerUso: StateFlow<Boolean> = repo.usuariosStream()
+        .map { it.isEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    private val _modoEquipo = MutableStateFlow(false)
+    val modoEquipo: StateFlow<Boolean> = _modoEquipo.asStateFlow()
 
     /** Devuelve el usuario si entro, o null si la contrasena esta mal. */
     suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario? {
@@ -61,15 +73,22 @@ class SesionViewModel @Inject constructor(
     }
 
     /** Solo el administrador puede; devuelve null si quien pide no tiene permiso. */
-    suspend fun crearUsuario(nombreUsuario: String, contrasena: String, rol: Rol): Usuario? {
-        val quienCrea = _usuarioActual.value ?: return null
-        if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
-        return repo.crearUsuario(quienCrea, nombreUsuario.trim(), contrasena, rol)
+    /** Solo el administrador puede. Devuelve null si quien pide no tiene permiso. */
+    fun crearUsuario(nombreUsuario: String, contrasena: String, rol: Rol, fecha: String) {
+        val quienCrea = _usuarioActual.value ?: return
+        if (nombreUsuario.isBlank() || contrasena.isBlank()) return
+        viewModelScope.launch {
+            val creado = repo.crearUsuario(quienCrea, nombreUsuario.trim(), contrasena, rol)
+            if (creado != null) {
+                repo.registrarLog(fecha, "manual", "Alta de usuario " + creado.nombreUsuario)
+            }
+        }
     }
 
-    fun elegirModo(equipo: Boolean) { viewModelScope.launch { repo.elegirModo(equipo) } }
-
-    suspend fun esModoEquipo(): Boolean = repo.esModoEquipo()
+    fun elegirModo(equipo: Boolean) {
+        _modoEquipo.value = equipo
+        viewModelScope.launch { repo.elegirModo(equipo) }
+    }
 
     fun tienePermiso(usuario: Usuario, accion: String): Boolean = repo.tienePermiso(usuario, accion)
 

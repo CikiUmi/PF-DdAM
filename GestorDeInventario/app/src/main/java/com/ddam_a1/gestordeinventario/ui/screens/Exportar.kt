@@ -15,32 +15,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
 import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
-import com.ddam_a1.gestordeinventario.ui.hoy
-import com.ddam_a1.gestordeinventario.data.Ventas
 import com.ddam_a1.gestordeinventario.ui.components.OpcionSimple
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaSuave
 
-/** Pantalla 20 · Exportar datos (RF29). */
+/** Pantalla 20 - Exportar datos (RF29). */
 @Composable
-fun PantallaExportar(onAtras: () -> Unit) {
+fun PantallaExportar(
+    vistaPrevia: String,
+    onExportar: (clave: String) -> Unit,
+    onAtras: () -> Unit
+) {
     var formato by remember { mutableStateOf(0) }
     var proteger by remember { mutableStateOf(true) }
     var clave by remember { mutableStateOf("") }
-    var resultado by remember { mutableStateOf("") }
 
     val formatos = listOf(
-        "Hoja de cálculo (.xlsx)" to "Una pestaña por módulo.",
-        "Texto separado por comas (.csv)" to "Un archivo por módulo, dentro de un .zip.",
+        "Hoja de calculo (.xlsx)" to "Una pestana por modulo.",
+        "Texto separado por comas (.csv)" to "Un archivo por modulo, dentro de un .zip.",
         "Base de datos (.sql)" to "Volcado de tablas para importar en otro gestor."
     )
 
-    Marco(barra = { BarraSuperior("Exportar datos", onAtras = { onAtras() }) }) {
+    Marco(barra = { BarraSuperior("Exportar datos", onAtras = onAtras) }) {
         item {
             Text("Se exporta todo: materiales, productos, recetas, ventas y el historial de cambios.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -52,7 +51,7 @@ fun PantallaExportar(onAtras: () -> Unit) {
         }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Proteger el archivo con contraseña",
+                Text("Proteger el archivo con contrasena",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f))
@@ -60,15 +59,15 @@ fun PantallaExportar(onAtras: () -> Unit) {
             }
         }
         if (proteger) {
-            item { CampoTexto(clave, "Contraseña del archivo", { clave = it }) }
+            item { CampoTexto(clave, "Contrasena del archivo", { clave = it }) }
         }
-        if (resultado.isNotBlank()) {
+        if (vistaPrevia.isNotBlank()) {
             item {
                 TarjetaSuave {
                     Text("Vista previa del CSV", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
-                    Text(resultado, style = MaterialTheme.typography.bodyMedium,
+                    Text(vistaPrevia, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
             }
@@ -76,16 +75,7 @@ fun PantallaExportar(onAtras: () -> Unit) {
         item {
             Spacer(Modifier.height(8.dp))
             BotonPrincipal("Exportar", habilitado = !proteger || clave.length >= 4) {
-                val ventas = Ventas.obtenerHistorialVentas()
-                val csv = AlmacenamientoLocal.exportarACSV(
-                    "ventas.csv",
-                    listOf("id", "fecha", "total", "cancelada"),
-                    ventas.map { v -> listOf(v.id, v.fecha, v.total.toString(), v.cancelada.toString()) },
-                    clave
-                )
-                resultado = if (csv.isBlank()) "Sin datos que exportar todavía." else csv.take(300)
-                AlmacenamientoLocal.registrarLog(hoy(), "manual", "Exportación de datos generada")
-                EstadoApp.datosCambiaron()
+                onExportar(if (proteger) clave else "")
             }
         }
         item {

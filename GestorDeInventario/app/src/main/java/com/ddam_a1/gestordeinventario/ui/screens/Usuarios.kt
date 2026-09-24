@@ -10,9 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelClasses.Rol
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
+import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
@@ -21,31 +20,38 @@ import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
-import com.ddam_a1.gestordeinventario.ui.hoy
-import com.ddam_a1.gestordeinventario.data.Usuarios
 
-/** Pantalla 17 · Usuarios (RF26, RF27). */
+/**
+ * Pantalla 17 - Usuarios (RF26, RF27).
+ *
+ * `esAdmin` llega resuelto. La pantalla no compara roles ni decide permisos;
+ * solo dibuja el formulario o el aviso de que no puede.
+ */
 @Composable
-fun PantallaUsuarios(onPermisos: () -> Unit, onAtras: () -> Unit) {
-    EstadoApp.version
-    val lista = Usuarios.obtenerTodos()
+fun PantallaUsuarios(
+    usuarios: List<Usuario>,
+    usuarioActual: Usuario?,
+    esAdmin: Boolean,
+    onCrearUsuario: (nombre: String, clave: String, rol: Rol) -> Unit,
+    onPermisos: () -> Unit,
+    onAtras: () -> Unit
+) {
     var nombre by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var rolElegido by remember { mutableStateOf(Rol.EMPLEADO) }
-    val quien = EstadoApp.usuario
-    val esAdmin = quien != null && quien.rol == Rol.ADMINISTRADOR
 
     Marco(barra = {
-        BarraSuperior("Equipo", lista.size.toString() + " usuarios", onAtras = { onAtras() }) {
+        BarraSuperior("Equipo", usuarios.size.toString() + " usuarios", onAtras = onAtras) {
             BotonIcono(Iconos.Candado, "Permisos", { onPermisos() })
         }
     }) {
-        items(lista.size) { i ->
-            val u = lista[i]
+        items(usuarios.size) { i ->
+            val usuario = usuarios[i]
             FilaLista(
-                titulo = u.nombreUsuario,
-                subtitulo = if (quien != null && u.id == quien.id) "Sesión activa" else "Usuario del negocio",
-                valor = etiquetaRol(u.rol)
+                titulo = usuario.nombreUsuario,
+                subtitulo = if (usuarioActual != null && usuario.id == usuarioActual.id)
+                    "Sesion activa" else "Usuario del negocio",
+                valor = etiquetaRol(usuario.rol)
             )
         }
 
@@ -58,21 +64,20 @@ fun PantallaUsuarios(onPermisos: () -> Unit, onAtras: () -> Unit) {
         } else {
             item { EncabezadoSeccion("Nuevo usuario") }
             item { CampoTexto(nombre, "Usuario", { nombre = it }) }
-            item { CampoTexto(clave, "Contraseña", { clave = it }) }
+            item { CampoTexto(clave, "Contrasena", { clave = it }) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Rol.values().forEach { r ->
-                        ChipFiltro(etiquetaRol(r), rolElegido == r, { rolElegido = r })
+                    Rol.entries.forEach { rol ->
+                        ChipFiltro(etiquetaRol(rol), rolElegido == rol, { rolElegido = rol })
                     }
                 }
             }
             item {
-                BotonPrincipal("Crear usuario", habilitado = nombre.isNotBlank() && clave.length >= 4) {
-                    Usuarios.crearUsuario(quien, nombre.trim(), clave, rolElegido)
-                    AlmacenamientoLocal.registrarLog(hoy(), "manual", "Alta de usuario " + nombre.trim())
+                BotonPrincipal("Crear usuario",
+                    habilitado = nombre.isNotBlank() && clave.length >= 4) {
+                    onCrearUsuario(nombre.trim(), clave, rolElegido)
                     nombre = ""
                     clave = ""
-                    EstadoApp.datosCambiaron()
                 }
             }
         }

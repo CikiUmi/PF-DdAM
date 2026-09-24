@@ -14,7 +14,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.ddam_a1.gestordeinventario.ui.EstadoApp
+import com.ddam_a1.gestordeinventario.data.ErrorVenta
+import com.ddam_a1.gestordeinventario.data.ResultadoVenta
+import com.ddam_a1.gestordeinventario.modelClasses.Periodo
+import com.ddam_a1.gestordeinventario.modelClasses.Rol
 import com.ddam_a1.gestordeinventario.ui.hoy
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
@@ -41,6 +44,7 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaReceta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
 import com.ddam_a1.gestordeinventario.viewModel.InventarioViewModel
+import com.ddam_a1.gestordeinventario.viewModel.SesionViewModel
 import kotlinx.coroutines.launch
 
 // ============================================================
@@ -65,6 +69,7 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
     // distinto por pantalla (uno por NavBackStackEntry) y el detalle de un
     // material no se enteraria de lo que acabas de guardar en su formulario.
     val inventarioVm: InventarioViewModel = hiltViewModel()
+    val sesionVm: SesionViewModel = hiltViewModel()
 
     // Para las operaciones que devuelven un resultado y hay que esperarlo
     // antes de decidir a donde ir (crear un producto, registrar produccion).
@@ -101,21 +106,46 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- ACCESO ----------
 
         composable(RUTA_LOGIN) {
+            val primerUso by sesionVm.primerUso.collectAsState()
+            var errorLogin by remember { mutableStateOf<String?>(null) }
+
             PantallaLogin(
-                onEntrar = { usuario ->
-                    EstadoApp.usuario = usuario
-                    entrarALaApp()
+                primerUso = primerUso,
+                error = errorLogin,
+                onEntrar = { usuario, clave ->
+                    scope.launch {
+                        // El ViewModel guarda la sesion si la contrasena es
+                        // correcta; aqui solo se decide que hacer con el "no".
+                        if (sesionVm.iniciarSesion(usuario, clave) == null) {
+                            errorLogin = "Usuario o contrasena incorrectos"
+                        } else {
+                            entrarALaApp()
+                        }
+                    }
                 },
+                onLimpiarError = { errorLogin = null },
                 onConfigurar = { navController.navigate(RUTA_CREAR_ADMIN) }
             )
         }
 
         composable(RUTA_CREAR_ADMIN) {
-            PantallaCrearAdmin(onContinuar = { navController.navigate(RUTA_ELEGIR_MODO) })
+            PantallaCrearAdmin(
+                onCrear = { usuario, clave ->
+                    scope.launch {
+                        sesionVm.crearUsuarioAdministrador(usuario, clave)
+                        navController.navigate(RUTA_ELEGIR_MODO)
+                    }
+                }
+            )
         }
 
         composable(RUTA_ELEGIR_MODO) {
-            PantallaElegirModo(onEmpezar = { entrarALaApp() })
+            PantallaElegirModo(
+                onEmpezar = { equipo ->
+                    sesionVm.elegirModo(equipo)
+                    entrarALaApp()
+                }
+            )
         }
 
         // ---------- INICIO ----------
@@ -372,11 +402,36 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- VENTAS ----------
 
         composable(RUTA_NUEVA_VENTA) {
+            val productos by inventarioVm.productos.collectAsState()
+            var errorVenta by remember { mutableStateOf<String?>(null) }
+
             PantallaNuevaVenta(
-                onVentaRegistrada = {
-                    navController.navigate(RUTA_HISTORIAL_VENTAS) {
-                        popUpTo(RUTA_INICIO) { inclusive = false }
-                        launchSingleTop = true
+                productos = productos,
+                error = errorVenta,
+                onDescartarError = { errorVenta = null },
+                onConfirmar = { ticket ->
+                    scope.launch {
+                        val resultado = inventarioVm.registrarVenta(
+                            hoy(), ticket.map { it.key to it.value }
+                        )
+                        // Traducir el motivo a algo que se pueda leer es trabajo
+                        // de la capa de interfaz, no del ViewModel ni de la
+                        // pantalla: aqui es donde se sabe que se va a mostrar.
+                        when (resultado) {
+                            is ResultadoVenta.Exito -> {
+                                navController.navigate(RUTA_HISTORIAL_VENTAS) {
+                                    popUpTo(RUTA_INICIO) { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            }
+                            is ResultadoVenta.Fallo -> errorVenta = when (resultado.motivo) {
+                                ErrorVenta.MATERIALES_INSUFICIENTES -> "No alcanzan los materiales para todo el ticket."
+                                ErrorVenta.STOCK_INSUFICIENTE -> "No hay stock suficiente de alguno de los productos."
+                                ErrorVenta.CANTIDAD_INVALIDA -> "Hay una cantidad invalida."
+                                ErrorVenta.PRODUCTO_NO_EXISTE -> "Un producto del ticket ya no existe."
+                                ErrorVenta.TICKET_VACIO -> "El ticket esta vacio."
+                            }
+                        }
                     }
                 },
                 onAtras = atras
@@ -384,7 +439,22 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(RUTA_HISTORIAL_VENTAS) {
+            val ventas by inventarioVm.ventas.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
+
+            // El periodo vive aqui porque de el dependen la lista filtrada y las
+            // metricas, y esos los calcula el ViewModel.
+            var periodo by remember { mutableStateOf(Periodo.DIARIO) }
+
+            val filtradas = inventarioVm.filtrarVentasPorPeriodo(ventas.reversed(), periodo, hoy())
+
             PantallaHistorialVentas(
+                ventas = filtradas,
+                nombreProducto = { id -> productos.find { it.id == id }?.nombre ?: "?" },
+                ingresos = inventarioVm.calcularIngresos(filtradas),
+                ganancias = inventarioVm.calcularGanancias(filtradas),
+                periodo = periodo,
+                onPeriodo = { nuevo -> periodo = nuevo },
                 onNuevaVenta = { navController.navigate(RUTA_NUEVA_VENTA) },
                 onDestino = { destino -> irADestino(destino) }
             )
@@ -393,14 +463,29 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- ADMINISTRACION ----------
 
         composable(RUTA_AVISOS) {
+            // `avisos` cuelga del flujo de materiales: si baja el stock de algo,
+            // el aviso aparece sin que nadie vuelva a preguntar.
+            val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
+
             PantallaAvisos(
+                stockBajo = avisos.filter { it.tipo == "stock_bajo" },
+                porCaducar = avisos.filter { it.tipo == "caducidad" },
                 onMaterial = { id -> navController.navigate(rutaDetalleMaterial(id)) },
                 onAtras = atras
             )
         }
 
         composable(RUTA_USUARIOS) {
+            val usuarios by sesionVm.usuarios.collectAsState()
+            val actual by sesionVm.usuarioActual.collectAsState()
+
             PantallaUsuarios(
+                usuarios = usuarios,
+                usuarioActual = actual,
+                esAdmin = actual?.rol == Rol.ADMINISTRADOR,
+                onCrearUsuario = { nombre, clave, rol ->
+                    sesionVm.crearUsuario(nombre, clave, rol, hoy())
+                },
                 onPermisos = { navController.navigate(RUTA_PERMISOS) },
                 onAtras = atras
             )
@@ -411,19 +496,49 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(RUTA_CONFIGURACION) {
+            // La unica pantalla que junta los dos mundos: la bitacora es del
+            // inventario y el modo de equipo es de la sesion.
+            val modoEquipo by sesionVm.modoEquipo.collectAsState()
+            val usuarios by sesionVm.usuarios.collectAsState()
+            val bitacora by inventarioVm.bitacora.collectAsState()
+
             PantallaConfiguracion(
+                modoEquipo = modoEquipo,
+                totalUsuarios = usuarios.size,
+                bitacora = bitacora.reversed(),
                 onExportar = { navController.navigate(RUTA_EXPORTAR) },
                 onUsuarios = { navController.navigate(RUTA_USUARIOS) },
                 onAtras = atras,
                 onSalir = {
-                    EstadoApp.cerrarSesion()
+                    sesionVm.cerrarSesion()
                     navController.navigate(RUTA_LOGIN) { popUpTo(0) { inclusive = true } }
                 }
             )
         }
 
         composable(RUTA_EXPORTAR) {
-            PantallaExportar(onAtras = atras)
+            val ventas by inventarioVm.ventas.collectAsState()
+            var vistaPrevia by remember { mutableStateOf("") }
+
+            PantallaExportar(
+                vistaPrevia = vistaPrevia,
+                onExportar = { clave ->
+                    scope.launch {
+                        val csv = inventarioVm.exportarACSV(
+                            "ventas.csv",
+                            listOf("id", "fecha", "total", "cancelada"),
+                            ventas.map { v ->
+                                listOf(v.id, v.fecha, v.total.toString(), v.cancelada.toString())
+                            },
+                            clave
+                        )
+                        vistaPrevia =
+                            if (csv.isBlank()) "Sin datos que exportar todavia." else csv.take(300)
+                        inventarioVm.registrarLog(hoy(), "manual", "Exportacion de datos generada")
+                    }
+                },
+                onAtras = atras
+            )
         }
     }
 }

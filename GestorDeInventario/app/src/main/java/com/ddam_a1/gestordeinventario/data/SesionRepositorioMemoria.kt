@@ -38,6 +38,10 @@ class SesionRepositorioMemoria @Inject constructor() : SesionRepositorio {
 
     override suspend fun esModoEquipo(): Boolean = Usuarios.esModoEquipo()
 
+    override suspend fun registrarLog(fecha: String, tipo: String, descripcion: String) {
+        AlmacenamientoLocal.registrarLog(fecha, tipo, descripcion)
+    }
+
     override fun tienePermiso(usuario: Usuario, accion: String): Boolean =
         Usuarios.tienePermiso(usuario, accion)
 }
