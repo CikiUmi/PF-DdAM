@@ -9,7 +9,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ddam_a1.gestordeinventario.ui.navigation.GestorNavHost
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaLogin
 import com.ddam_a1.gestordeinventario.ui.theme.GestorDeInventarioTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
