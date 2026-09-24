@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.ddam_a1.gestordeinventario.ui.App
+import com.ddam_a1.gestordeinventario.ui.navegacion.GestorNavHost
 import com.ddam_a1.gestordeinventario.ui.pantallas.PantallaLogin
 import com.ddam_a1.gestordeinventario.ui.theme.GestorDeInventarioTheme
 
@@ -16,13 +16,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GestorDeInventarioTheme {
-                App()
+                GestorNavHost()
             }
         }
     }
 }
 
-@Preview(name = "Inicio de sesión", showBackground = true, widthDp = 360, heightDp = 800)
+@Preview(name = "Inicio de sesion", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun VistaPreviaLogin() {
     GestorDeInventarioTheme {
@@ -30,7 +30,7 @@ fun VistaPreviaLogin() {
     }
 }
 
-@Preview(name = "Inicio de sesión · oscuro", showBackground = true, widthDp = 360, heightDp = 800)
+@Preview(name = "Inicio de sesion - oscuro", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun VistaPreviaLoginOscuro() {
     GestorDeInventarioTheme(darkTheme = true) {
