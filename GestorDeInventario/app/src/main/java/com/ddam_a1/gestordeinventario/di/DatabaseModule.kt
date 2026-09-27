@@ -1,13 +1,14 @@
 package com.ddam_a1.gestordeinventario.di
 
 import android.content.Context
-import com.ddam_a1.gestordeinventario.data.BitacoraDao
-import com.ddam_a1.gestordeinventario.data.GestorDatabase
-import com.ddam_a1.gestordeinventario.data.LoteDao
-import com.ddam_a1.gestordeinventario.data.MaterialDao
-import com.ddam_a1.gestordeinventario.data.ProductoDao
-import com.ddam_a1.gestordeinventario.data.RecetaDao
-import com.ddam_a1.gestordeinventario.data.UsuarioDao
+import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
+import com.ddam_a1.gestordeinventario.data.database.GestorDatabase
+import com.ddam_a1.gestordeinventario.data.dao.LoteDao
+import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
+import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
+import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
+import com.ddam_a1.gestordeinventario.data.dao.UsuarioDao
+import com.ddam_a1.gestordeinventario.data.dao.VentaDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -56,5 +57,5 @@ object DatabaseModule {
     @Provides
     fun proveerBitacoraDao(db: GestorDatabase): BitacoraDao = db.bitacoraDao()
 
-    // TODO (juntas): fun proveerVentaDao(db: GestorDatabase): VentaDao = db.ventaDao()
+    fun proveerVentaDao(db: GestorDatabase): VentaDao = db.ventaDao()
 }

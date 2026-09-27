@@ -1,7 +1,7 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.database
 
 import androidx.room.TypeConverter
-import com.ddam_a1.gestordeinventario.modelClasses.Rol
+import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 
 /**
  * SQLite solo sabe de texto, numeros y blobs. Todo lo demas necesita traduccion.

@@ -1,6 +1,6 @@
 package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.modelClasses.Periodo
+import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.Venta
 
 /**

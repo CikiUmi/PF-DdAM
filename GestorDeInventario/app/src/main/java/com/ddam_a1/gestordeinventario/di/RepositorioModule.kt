@@ -1,9 +1,9 @@
 package com.ddam_a1.gestordeinventario.di
 
-import com.ddam_a1.gestordeinventario.data.InventarioRepositorio
-import com.ddam_a1.gestordeinventario.data.InventarioRepositorioLocal
-import com.ddam_a1.gestordeinventario.data.SesionRepositorio
-import com.ddam_a1.gestordeinventario.data.SesionRepositorioLocal
+import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
+import com.ddam_a1.gestordeinventario.data.repos.local.InventarioRepositorioLocal
+import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
+import com.ddam_a1.gestordeinventario.data.repos.local.SesionRepositorioLocal
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

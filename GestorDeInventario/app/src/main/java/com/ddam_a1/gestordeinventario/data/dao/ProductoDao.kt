@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete

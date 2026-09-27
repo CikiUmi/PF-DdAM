@@ -101,9 +101,9 @@ object Ventas {
         val venta = Venta(
             id = UUID.randomUUID().toString(),
             fecha = fecha,
-            items = items,
             total = total
         )
+        venta.items = items
         ventas.add(venta)
 
         // RF15: log del cambio de inventario provocado por la venta

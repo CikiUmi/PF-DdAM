@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 
 /**
  * El indice UNIQUE es la garantia de verdad de que no haya dos usuarios con el

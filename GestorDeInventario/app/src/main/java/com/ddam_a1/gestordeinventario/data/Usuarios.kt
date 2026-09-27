@@ -1,6 +1,6 @@
 package com.ddam_a1.gestordeinventario.data
 
-import com.ddam_a1.gestordeinventario.modelClasses.Rol
+import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import java.security.MessageDigest
 import java.util.UUID
