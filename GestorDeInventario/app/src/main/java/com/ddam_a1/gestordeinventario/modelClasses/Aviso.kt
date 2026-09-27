@@ -19,5 +19,21 @@ enum class TipoAviso { STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO, CADUCIDAD }
 data class Aviso(
     val referenciaId: String,
     val tipo: TipoAviso,
-    val mensaje: String
-)
+    val mensaje: String,
+    /** Lo puso el repositorio consultando la tabla de descartes. No se guarda aqui. */
+    val leido: Boolean = false
+) {
+    /**
+     * Identidad estable del aviso, para recordar cual ya viste.
+     *
+     * Un aviso NO se guarda en la base: se recalcula del estado real cada vez.
+     * Lo unico que se guarda es esta clave cuando lo marcas como leido.
+     *
+     * Entra el `mensaje` a proposito: un mismo material puede tener varios
+     * lotes por caducar, y todos comparten `referenciaId`. El mensaje trae la
+     * fecha del lote, que es lo que los distingue. Efecto secundario: si
+     * renombras el material, el aviso vuelve a aparecer sin leer — correcto,
+     * porque el texto que ya habias visto ya no es el mismo.
+     */
+    val clave: String get() = tipo.name + "|" + referenciaId + "|" + mensaje
+}

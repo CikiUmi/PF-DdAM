@@ -43,7 +43,7 @@ fun PantallaConfiguracion(
         item {
             FilaLista(
                 titulo = "Exportar datos",
-                subtitulo = "SQL, .xlsx o .csv con contrasena",
+                subtitulo = "Las ventas en un archivo .csv",
                 onClick = { onExportar() }
             )
         }

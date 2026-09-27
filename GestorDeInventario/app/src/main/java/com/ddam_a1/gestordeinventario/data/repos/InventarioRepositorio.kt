@@ -1,6 +1,5 @@
 package com.ddam_a1.gestordeinventario.data.repos
 
-import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 //  objetos de data/. Esa ausencia ES la capa. El ViewModel habla con esta
 //  interfaz y no sabe si atras hay una lista en memoria o una base de datos.
 //
-//  Hoy la implementacion es InventarioRepositorioMemoria. Cuando escribas los
+//  Hoy la implementacion es InventarioRepositorioLocal, con Room. Los
 //  DAO, agregas InventarioRepositorioLocal y cambias UNA linea en el modulo de
 //  Hilt. El ViewModel y las pantallas no se enteran.
 //
@@ -106,14 +105,37 @@ interface InventarioRepositorio {
     suspend fun revisarStockBajoProductos(): List<Aviso>
     suspend fun revisarCaducidadesProximas(fechaHoy: String): List<Aviso>
 
+    /**
+     * Los tres de arriba, juntos y ya marcados como leidos o no.
+     * Es lo que consume la pantalla; los tres sueltos siguen ahi porque
+     * Inicio solo quiere la cuenta de stock bajo.
+     */
+    suspend fun avisos(fechaHoy: String): List<Aviso>
+
+    /** En vivo, para que marcar uno como leido redibuje la lista. */
+    fun avisosDescartadosStream(): Flow<List<String>>
+
+    suspend fun marcarAvisoLeido(clave: String, fecha: String)
+    suspend fun marcarAvisosLeidos(claves: List<String>, fecha: String)
+
+    /** Vuelve a mostrar todos los avisos como no leidos. */
+    suspend fun restaurarAvisos()
+
     // ---------- BITACORA Y EXPORTACION ----------
 
     suspend fun registrarLog(fecha: String, tipo: String, descripcion: String): RegistroLog
     suspend fun consultarHistorial(textoBusqueda: String? = null): List<RegistroLog>
+    /** Vista previa: arma el CSV en memoria, sin tocar el disco. */
+    suspend fun vistaPreviaCSV(encabezados: List<String>, filas: List<List<String>>): String
+
+    /**
+     * RF29: escribe el .csv de verdad y devuelve su ruta absoluta.
+     * Ya no recibe `contrasena`: cifrar pide una libreria externa y el
+     * parametro solo servia para aparentar que se usaba.
+     */
     suspend fun exportarACSV(
         nombreArchivo: String,
         encabezados: List<String>,
-        filas: List<List<String>>,
-        contrasena: String
+        filas: List<List<String>>
     ): String
 }

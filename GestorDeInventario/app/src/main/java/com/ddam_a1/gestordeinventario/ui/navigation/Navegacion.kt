@@ -14,8 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.ddam_a1.gestordeinventario.data.repos.memory.ErrorVenta
-import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.repos.ErrorVenta
+import com.ddam_a1.gestordeinventario.data.repos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
@@ -507,8 +507,6 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                                 ErrorVenta.CANTIDAD_INVALIDA -> "Hay una cantidad invalida."
                                 ErrorVenta.PRODUCTO_NO_EXISTE -> "Un producto del ticket ya no existe."
                                 ErrorVenta.TICKET_VACIO -> "El ticket esta vacio."
-                                ErrorVenta.VENTAS_NO_DISPONIBLES ->
-                                    "Las ventas todavia no se guardan: falta terminar VentaDao."
                             }
                         }
                     }
@@ -542,15 +540,18 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         // ---------- ADMINISTRACION ----------
 
         composable(RUTA_AVISOS) {
-            // `avisos` cuelga del flujo de materiales: si baja el stock de algo,
-            // el aviso aparece sin que nadie vuelva a preguntar.
+            // `avisos` cuelga de materiales, productos y de la tabla de leidos:
+            // si baja el stock de algo, o marcas uno como leido, la lista se
+            // rearma sola sin que nadie vuelva a preguntar.
             val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
+            val pendientes = avisos.filter { !it.leido }
 
             PantallaAvisos(
-                stockBajo = avisos.filter {
+                stockBajo = pendientes.filter {
                     it.tipo == TipoAviso.STOCK_BAJO_MATERIAL || it.tipo == TipoAviso.STOCK_BAJO_PRODUCTO
                 },
-                porCaducar = avisos.filter { it.tipo == TipoAviso.CADUCIDAD },
+                porCaducar = pendientes.filter { it.tipo == TipoAviso.CADUCIDAD },
+                leidos = avisos.filter { it.leido },
                 // El mismo renglon lleva a un material o a un producto segun de
                 // que avise. El `when` sobre el enum obliga a cubrir los tres.
                 onAviso = { aviso ->
@@ -560,6 +561,9 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                         TipoAviso.STOCK_BAJO_PRODUCTO -> navController.navigate(rutaDetalleProducto(aviso.referenciaId))
                     }
                 },
+                onMarcarLeido = { inventarioVm.marcarAvisoLeido(it, hoy()) },
+                onMarcarTodos = { inventarioVm.marcarAvisosLeidos(pendientes, hoy()) },
+                onRestaurar = { inventarioVm.restaurarAvisos() },
                 onAtras = atras
             )
         }
@@ -618,21 +622,20 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
         composable(RUTA_EXPORTAR) {
             val ventas by inventarioVm.ventas.collectAsState()
             var vistaPrevia by remember { mutableStateOf("") }
+            var rutaGuardada by remember { mutableStateOf<String?>(null) }
+
+            val encabezados = listOf("id", "fecha", "total", "cancelada")
+            val filas = ventas.map { v ->
+                listOf(v.id, v.fecha, v.total.toString(), v.cancelada.toString())
+            }
 
             PantallaExportar(
                 vistaPrevia = vistaPrevia,
-                onExportar = { clave ->
+                rutaGuardada = rutaGuardada,
+                onExportar = {
                     scope.launch {
-                        val csv = inventarioVm.exportarACSV(
-                            "ventas.csv",
-                            listOf("id", "fecha", "total", "cancelada"),
-                            ventas.map { v ->
-                                listOf(v.id, v.fecha, v.total.toString(), v.cancelada.toString())
-                            },
-                            clave
-                        )
-                        vistaPrevia =
-                            if (csv.isBlank()) "Sin datos que exportar todavia." else csv.take(300)
+                        vistaPrevia = inventarioVm.vistaPreviaCSV(encabezados, filas).take(300)
+                        rutaGuardada = inventarioVm.exportarACSV("ventas.csv", encabezados, filas)
                         inventarioVm.registrarLog(hoy(), "manual", "Exportacion de datos generada")
                     }
                 },

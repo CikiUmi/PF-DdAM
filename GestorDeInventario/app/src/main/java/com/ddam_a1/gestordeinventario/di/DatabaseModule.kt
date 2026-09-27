@@ -1,6 +1,7 @@
 package com.ddam_a1.gestordeinventario.di
 
 import android.content.Context
+import com.ddam_a1.gestordeinventario.data.dao.AvisoDescartadoDao
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.database.GestorDatabase
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
@@ -57,5 +58,9 @@ object DatabaseModule {
     @Provides
     fun proveerBitacoraDao(db: GestorDatabase): BitacoraDao = db.bitacoraDao()
 
+    @Provides
     fun proveerVentaDao(db: GestorDatabase): VentaDao = db.ventaDao()
+
+    @Provides
+    fun proveerAvisoDescartadoDao(db: GestorDatabase): AvisoDescartadoDao = db.avisoDescartadoDao()
 }

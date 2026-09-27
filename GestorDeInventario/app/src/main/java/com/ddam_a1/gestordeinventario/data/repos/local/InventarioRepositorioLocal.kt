@@ -1,8 +1,14 @@
 package com.ddam_a1.gestordeinventario.data.repos.local
 
-import com.ddam_a1.gestordeinventario.data.services.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.data.repos.memory.ErrorVenta
-import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
+import androidx.room.withTransaction
+import com.ddam_a1.gestordeinventario.data.database.GestorDatabase
+import android.content.Context
+import com.ddam_a1.gestordeinventario.data.services.ExportadorCSV
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import com.ddam_a1.gestordeinventario.data.repos.ErrorVenta
+import com.ddam_a1.gestordeinventario.data.repos.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.dao.AvisoDescartadoDao
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
 import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
@@ -11,6 +17,7 @@ import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
 import com.ddam_a1.gestordeinventario.data.dao.VentaDao
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
+import com.ddam_a1.gestordeinventario.modelClasses.AvisoDescartado
 import com.ddam_a1.gestordeinventario.modelClasses.IngredienteReceta
 import com.ddam_a1.gestordeinventario.modelClasses.ItemVendido
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
@@ -19,6 +26,8 @@ import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
 import com.ddam_a1.gestordeinventario.modelClasses.Venta
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
@@ -36,7 +45,15 @@ class InventarioRepositorioLocal @Inject constructor(
     private val productoDao: ProductoDao,
     private val recetaDao: RecetaDao,
     private val bitacoraDao: BitacoraDao,
-    private val ventaDao: VentaDao
+    private val avisoDescartadoDao: AvisoDescartadoDao,
+    private val ventaDao: VentaDao,
+    // La base entera, ademas de los DAO: es lo que permite abrir UNA transaccion
+    // que abarque varios DAO. El @Provides ya existia (proveerBaseDatos).
+    private val db: GestorDatabase,
+    // Solo para saber DONDE escribir el .csv. Con @ApplicationContext Hilt da
+    // el contexto de la aplicacion, que vive lo mismo que el proceso: guardar
+    // el de una Activity en un @Singleton la dejaria sin poder morir.
+    @ApplicationContext private val contexto: Context
 ) : InventarioRepositorio {
 
     // ---------- LOS FLUJOS ----------
@@ -286,6 +303,35 @@ class InventarioRepositorioLocal @Inject constructor(
         return avisos
     }
 
+    // ---------- AVISOS: LEIDOS Y DESCARTES ----------
+
+    override fun avisosDescartadosStream(): Flow<List<String>> =
+        avisoDescartadoDao.clavesStream()
+
+    override suspend fun avisos(fechaHoy: String): List<Aviso> {
+        val vigentes = revisarStockBajo() +
+                revisarStockBajoProductos() +
+                revisarCaducidadesProximas(fechaHoy)
+
+        // Primero la limpieza: las marcas de avisos que ya no existen se van.
+        // Si la lista viene vacia hay que borrar todo a mano, porque el SQL
+        // `NOT IN ()` con lista vacia no es valido en SQLite.
+        val claves = vigentes.map { it.clave }
+        if (claves.isEmpty()) avisoDescartadoDao.borrarTodos()
+        else avisoDescartadoDao.borrarObsoletos(claves)
+
+        val leidas = avisoDescartadoDao.claves().toSet()
+        return vigentes.map { it.copy(leido = it.clave in leidas) }
+    }
+
+    override suspend fun marcarAvisoLeido(clave: String, fecha: String) =
+        avisoDescartadoDao.descartar(AvisoDescartado(clave, fecha))
+
+    override suspend fun marcarAvisosLeidos(claves: List<String>, fecha: String) =
+        avisoDescartadoDao.descartarVarios(claves.map { AvisoDescartado(it, fecha) })
+
+    override suspend fun restaurarAvisos() = avisoDescartadoDao.borrarTodos()
+
     private fun diasEntre(desde: String, hasta: String): Int? {
         val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val a = runCatching { formato.parse(desde) }.getOrNull() ?: return null
@@ -304,25 +350,43 @@ class InventarioRepositorioLocal @Inject constructor(
     override suspend fun consultarHistorial(textoBusqueda: String?): List<RegistroLog> =
         bitacoraDao.buscar(textoBusqueda ?: "")
 
+    override suspend fun vistaPreviaCSV(
+        encabezados: List<String>,
+        filas: List<List<String>>
+    ): String = ExportadorCSV.armar(encabezados, filas)
+
     override suspend fun exportarACSV(
         nombreArchivo: String,
         encabezados: List<String>,
-        filas: List<List<String>>,
-        contrasena: String
-    ): String = AlmacenamientoLocal.exportarACSV(nombreArchivo, encabezados, filas, contrasena)
+        filas: List<List<String>>
+    ): String {
+        // getExternalFilesDir es la carpeta privada de la app en el almacenamiento
+        // compartido: NO pide permisos, se borra al desinstalar, y el gestor de
+        // archivos del telefono si la ve. Si el telefono no tiene esa particion
+        // montada devuelve null, y ahi se cae a la interna.
+        val carpeta = File(contexto.getExternalFilesDir(null) ?: contexto.filesDir, "exportaciones")
+        // Dispatchers.IO: escribir un archivo BLOQUEA. Room mueve sus consultas
+        // a un hilo propio, pero esto es un File a pelo y nadie lo mueve por ti;
+        // en el hilo principal congelaria la pantalla.
+        return withContext(Dispatchers.IO) {
+            ExportadorCSV.escribir(carpeta, nombreArchivo, encabezados, filas)
+        }
+    }
 
     // ============================================================
-    //   1. `Venta` e `ItemVendido` como @Entity. Un ItemVendido apunta a su
-    //      venta con `venta_id` (ForeignKey + CASCADE + indice), igual que los
-    //      lotes con su material. Los precios van CONGELADOS en el item: eso ya
-    //      lo tenias resuelto (RF30) y con Room se vuelve obvio por que.
-    //   2. `VentaDao` con @Transaction y @Relation para leer una venta con sus
-    //      items de un jalon. Es lo unico de este proyecto que necesita
-    //      @Relation de verdad.
-    //   3. Agregar las dos entidades a GestorDatabase y SUBIR version a 2.
-    //   4. `registrarVenta`: dos fases como en produccion, pero acumulando los
-    //      requerimientos de TODO el ticket antes de tocar nada — dos renglones
-    //      del mismo producto tienen que sumar.
+    //  VENTAS
+    //
+    //  Dos protecciones distintas, y las dos hacen falta:
+    //
+    //   - El `WHERE ... AND cantidad >= :cantidad` de `descontar` protege
+    //     contra dos ventas SIMULTANEAS del mismo material.
+    //   - `withTransaction` protege contra quedarse A MEDIAS: si el proceso
+    //     muere entre descontar y guardarVenta, el inventario bajo y la venta
+    //     no existe. Producto desaparecido.
+    //
+    //  OJO: `withTransaction` NO es inline, asi que dentro del bloque no se
+    //  puede hacer `return`. Por eso las validaciones (las que devuelven
+    //  Fallo) van AFUERA, y el bloque termina con el valor, sin `return`.
     // ============================================================
 
     override fun ventasStream(): Flow<List<Venta>> =
@@ -335,25 +399,32 @@ class InventarioRepositorioLocal @Inject constructor(
 
     override suspend fun cancelarVenta(ventaId: String, fecha: String): Boolean {
         val fila = ventaDao.leer(ventaId) ?: return false
+        if (fila.venta.cancelada) return false
 
-        // Se cancela ANTES de devolver nada. `cancelar` lleva AND cancelada = 0,
-        // asi que si dos toques llegan a la vez, el segundo recibe 0 y se va.
-        // Al reves —devolver y luego cancelar— dos toques devolverian el stock dos veces.
-        if (ventaDao.cancelar(ventaId) == 0) return false
-
-        for (item in fila.items) {
-            val producto = productoDao.leer(item.productoId) ?: continue
-            if (producto.esBajoPedido) {
-                for (ingrediente in recetaDao.recetaDe(item.productoId)) {
-                    materialDao.sumar(ingrediente.materialId, ingrediente.cantidadUsada * item.cantidad)
-                }
+        return db.withTransaction {
+            // Se cancela ANTES de devolver nada. `cancelar` lleva AND cancelada = 0,
+            // asi que si dos toques llegan a la vez, el segundo recibe 0 y se va.
+            // Al reves —devolver y luego cancelar— dos toques devolverian el stock dos veces.
+            if (ventaDao.cancelar(ventaId) == 0) {
+                false
             } else {
-                productoDao.sumarStock(item.productoId, item.cantidad)
+                for (item in fila.items) {
+                    val producto = productoDao.leer(item.productoId) ?: continue
+                    if (producto.esBajoPedido) {
+                        for (ingrediente in recetaDao.recetaDe(item.productoId)) {
+                            materialDao.sumar(
+                                ingrediente.materialId,
+                                ingrediente.cantidadUsada * item.cantidad
+                            )
+                        }
+                    } else {
+                        productoDao.sumarStock(item.productoId, item.cantidad)
+                    }
+                }
+                registrarLog(fecha, "manual", "Venta " + ventaId + " cancelada y devuelta al inventario")
+                true
             }
         }
-
-        registrarLog(fecha, "manual", "Venta " + ventaId + " cancelada y devuelta al inventario")
-        return true
     }
 
     override suspend fun registrarVenta(
@@ -400,42 +471,48 @@ class InventarioRepositorioLocal @Inject constructor(
                 return ResultadoVenta.Fallo(ErrorVenta.STOCK_INSUFICIENTE)
         }
 
-        // ---- Fase 2: aplicar. De aqui para abajo ya nada devuelve Fallo ----
-        materialesRequeridos.forEach { (materialId, requerido) ->
-            materialDao.descontar(materialId, requerido)
-        }
-        productosRequeridos.forEach { (productoId, requerido) ->
-            productoDao.descontarStock(productoId, requerido)
-        }
+        // El costo congelado (RF30) se calcula ANTES de abrir la transaccion:
+        // `calcularCostoProduccion` hace sus propias consultas y no hay razon
+        // para tenerlas dentro del bloque que bloquea la escritura.
+        val costos = productos.keys.associateWith { calcularCostoProduccion(it) }
 
-        // ---- Armar la venta. RF30: precio Y costo se congelan AQUI ----
-        val ventaId = UUID.randomUUID().toString()
-        val itemsVendidos = mutableListOf<ItemVendido>()
-        var total = 0.0
-        for ((productoId, cantidad) in items) {
-            val producto = productos[productoId] ?: continue
-            itemsVendidos.add(
-                ItemVendido(
-                    productoId = productoId,
-                    cantidad = cantidad,
-                    precioUnitario = producto.precioVenta,
-                    costoUnitarioProduccion = calcularCostoProduccion(productoId),
-                    ventaId = ventaId                       // <- la llave foranea
+        // ---- Fase 2 y 3: una sola operacion, o ninguna ----
+        return db.withTransaction {
+            materialesRequeridos.forEach { (materialId, requerido) ->
+                materialDao.descontar(materialId, requerido)
+            }
+            productosRequeridos.forEach { (productoId, requerido) ->
+                productoDao.descontarStock(productoId, requerido)
+            }
+
+            val ventaId = UUID.randomUUID().toString()
+            val itemsVendidos = mutableListOf<ItemVendido>()
+            var total = 0.0
+            for ((productoId, cantidad) in items) {
+                val producto = productos[productoId] ?: continue
+                itemsVendidos.add(
+                    ItemVendido(
+                        productoId = productoId,
+                        cantidad = cantidad,
+                        precioUnitario = producto.precioVenta,          // RF30: congelado
+                        costoUnitarioProduccion = costos[productoId] ?: 0.0,
+                        ventaId = ventaId                               // la llave foranea
+                    )
                 )
-            )
-            total += producto.precioVenta * cantidad
+                total += producto.precioVenta * cantidad
+            }
+
+            val venta = Venta(id = ventaId, fecha = fecha, total = total)
+            venta.items = itemsVendidos
+
+            // El orden importa: la venta PRIMERO. La llave foranea exige que exista
+            // antes de que lleguen sus items, o SQLite rechaza el insert.
+            ventaDao.guardarVenta(venta)
+            ventaDao.guardarItems(itemsVendidos)
+
+            registrarLog(fecha, "venta", "Venta " + ventaId + " registrada por un total de " + total)
+            ResultadoVenta.Exito(venta)   // sin `return`: es el valor del bloque
         }
-
-        val venta = Venta(id = ventaId, fecha = fecha, total = total)
-        venta.items = itemsVendidos
-
-        // El orden importa: la venta PRIMERO. La llave foranea exige que exista
-        // antes de que lleguen sus items, o SQLite rechaza el insert.
-        ventaDao.guardarVenta(venta)
-        ventaDao.guardarItems(itemsVendidos)
-
-        registrarLog(fecha, "venta", "Venta " + ventaId + " registrada por un total de " + total)
-        return ResultadoVenta.Exito(venta)
     }
 }
 

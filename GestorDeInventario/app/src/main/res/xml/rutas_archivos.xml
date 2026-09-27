@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Que carpetas puede compartir el FileProvider.
+
+  Desde Android 7 esta prohibido pasar un file:// a otra app: truena con
+  FileUriExposedException. El FileProvider entrega un content:// en su lugar,
+  con permiso temporal solo para el archivo que se comparte.
+
+  `external-files-path` = getExternalFilesDir(), que es donde escribe
+  ExportadorCSV. `path` acota el permiso a la subcarpeta, no a todo.
+-->
+<paths>
+    <external-files-path name="exportaciones" path="exportaciones/" />
+    <files-path name="exportaciones_internas" path="exportaciones/" />
+</paths>

@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.data.negocio.RendimientoNegocio
-import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.repos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
@@ -83,11 +83,24 @@ class InventarioViewModel @Inject constructor(
      * llame a nada.
      */
     fun avisos(fechaHoy: String): Flow<List<Aviso>> =
-        combine(repo.materialesStream(), repo.productosStream()) { _, _ ->
-            repo.revisarStockBajo() +
-                repo.revisarStockBajoProductos() +
-                repo.revisarCaducidadesProximas(fechaHoy)
-        }
+        combine(
+            repo.materialesStream(),
+            repo.productosStream(),
+            repo.avisosDescartadosStream()   // marcar uno como leido redibuja la lista
+        ) { _, _, _ -> repo.avisos(fechaHoy) }
+
+    fun marcarAvisoLeido(aviso: Aviso, fecha: String) {
+        viewModelScope.launch { repo.marcarAvisoLeido(aviso.clave, fecha) }
+    }
+
+    fun marcarAvisosLeidos(avisos: List<Aviso>, fecha: String) {
+        if (avisos.isEmpty()) return
+        viewModelScope.launch { repo.marcarAvisosLeidos(avisos.map { it.clave }, fecha) }
+    }
+
+    fun restaurarAvisos() {
+        viewModelScope.launch { repo.restaurarAvisos() }
+    }
 
     // ---------- MATERIALES ----------
     //
@@ -345,10 +358,15 @@ class InventarioViewModel @Inject constructor(
     suspend fun consultarHistorial(textoBusqueda: String? = null): List<RegistroLog> =
         repo.consultarHistorial(textoBusqueda)
 
+    suspend fun vistaPreviaCSV(
+        encabezados: List<String>,
+        filas: List<List<String>>
+    ): String = repo.vistaPreviaCSV(encabezados, filas)
+
+    /** Devuelve la ruta absoluta del archivo escrito. */
     suspend fun exportarACSV(
         nombreArchivo: String,
         encabezados: List<String>,
-        filas: List<List<String>>,
-        contrasena: String
-    ): String = repo.exportarACSV(nombreArchivo, encabezados, filas, contrasena)
+        filas: List<List<String>>
+    ): String = repo.exportarACSV(nombreArchivo, encabezados, filas)
 }
