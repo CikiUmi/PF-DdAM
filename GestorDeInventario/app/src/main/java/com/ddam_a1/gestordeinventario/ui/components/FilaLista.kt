@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.Radios
+import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 
 // ============================================================
 //  FILA DE LISTA  (Figma 45:515 "Fila de material")
@@ -76,7 +77,7 @@ fun FilaLista(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 titulo,
-                style = MaterialTheme.typography.titleSmall,   // Lora SemiBold 16
+                style = MaterialTheme.typography.tituloMedio,   // Lora SemiBold 20
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -86,7 +87,7 @@ fun FilaLista(
                     if (subtitulo != null) {
                         Text(
                             subtitulo,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Medium
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -99,7 +100,7 @@ fun FilaLista(
                         // igual lee "Stock bajo".
                         Text(
                             alerta,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             color = MaterialTheme.colorScheme.error,

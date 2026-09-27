@@ -1,6 +1,8 @@
 package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,22 +30,28 @@ import com.ddam_a1.gestordeinventario.ui.theme.Radios
 /**
  * Figma "Campo de entrada / Tipo=Search" (36:61).
  *
- * Es el mismo campo que `CampoTexto` pero sin etiqueta arriba y con la
- * esquina mucho mas redonda (28 en vez de 16): asi se distingue de un campo
- * que se llena de una lista que se filtra.
+ * Es el mismo campo que `CampoTexto` pero sin etiqueta arriba.
+ *
+ * Radio 16 y no 28: el componente suelto (36:61) lo dibuja redondisimo, pero
+ * las pantallas de lista —Inventario, Catalogo, Nueva venta— lo ponen con la
+ * misma esquina que los demas campos. Mandan las pantallas.
  */
 @Composable
 fun BarraBusqueda(texto: String, marcador: String, onCambio: (String) -> Unit) {
+    val interacciones = remember { MutableInteractionSource() }
+    val enfocado by interacciones.collectIsFocusedAsState()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(Medidas.control)
-            .clip(RoundedCornerShape(Radios.busqueda))
+            .clip(RoundedCornerShape(Radios.campo))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(
-                Medidas.borde,
-                MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(Radios.busqueda)
+                if (enfocado) Medidas.bordeGrueso else Medidas.borde,
+                if (enfocado) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(Radios.campo)
             )
             .padding(horizontal = Margenes.lg),
         verticalAlignment = Alignment.CenterVertically,
@@ -69,6 +79,7 @@ fun BarraBusqueda(texto: String, marcador: String, onCambio: (String) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                interactionSource = interacciones,
                 modifier = Modifier.fillMaxWidth()
             )
         }

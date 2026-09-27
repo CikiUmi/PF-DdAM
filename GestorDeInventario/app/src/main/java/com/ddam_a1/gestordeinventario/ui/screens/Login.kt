@@ -136,7 +136,7 @@ fun PantallaLogin(
                 )
             } else {
                 Text(
-                    "Si no tienes cuenta, pidesela al administrador.",
+                    "Si no tienes cuenta, pide una al administrador.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

@@ -48,7 +48,7 @@ fun PantallaDetalleMaterial(
     onAtras: () -> Unit
 ) {
     var nuevaFecha by remember { mutableStateOf("") }
-    var entrada by remember { mutableStateOf("") }
+    var entrada by remember { mutableStateOf("0") }
 
     // "Caduca" no es una pregunta suelta: es lo que dijiste al darlo de alta.
     val caduca = material != null && material.diasAvisoCaducidad > 0
@@ -116,7 +116,14 @@ fun PantallaDetalleMaterial(
                 }
                 if (caduca) {
                     Box(Modifier.weight(1f)) {
-                        CampoTexto(nuevaFecha, "Caduca el (aaaa-mm-dd)", { nuevaFecha = it })
+                        // La fecha se teclea en formato ISO a proposito: asi
+                        // ordenar alfabeticamente ya es ordenar por fecha, y
+                        // por eso `lotes.caducidad` es texto y no necesita
+                        // convertidor. El marcador ensena el formato.
+                        CampoTexto(
+                            nuevaFecha, "Caduca el", { nuevaFecha = it },
+                            marcador = "aaaa-mm-dd"
+                        )
                     }
                 }
             }

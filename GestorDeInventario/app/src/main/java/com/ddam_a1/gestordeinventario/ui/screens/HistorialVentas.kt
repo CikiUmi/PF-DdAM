@@ -74,7 +74,7 @@ fun PantallaHistorialVentas(
         }
         item { EncabezadoSeccion("Movimientos") }
         if (ventas.isEmpty()) {
-            item { EstadoVacio("Sin ventas", "Toca el boton para registrar la primera") }
+            item { EstadoVacio("Sin ventas", "Las ventas registradas aparecerán aquí") }
         } else {
             items(ventas.size) { i ->
                 val venta = ventas[i]

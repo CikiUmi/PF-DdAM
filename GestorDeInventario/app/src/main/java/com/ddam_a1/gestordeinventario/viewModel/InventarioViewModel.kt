@@ -267,6 +267,8 @@ class InventarioViewModel @Inject constructor(
         precioVenta: Double,
         esBajoPedido: Boolean,
         stockMinimo: Int,
+        /** Piezas que ya existen al dar de alta. Solo cuenta al crear. */
+        stockInicial: Int = 0,
         fecha: String
     ): String? {
         if (nombre.isBlank()) return null
@@ -276,6 +278,19 @@ class InventarioViewModel @Inject constructor(
             val creado = repo.crearProducto(nombre.trim(), precioVenta, esBajoPedido)
             repo.definirStockMinimoProducto(creado.id, umbral)
             repo.registrarLog(fecha, "manual", "Alta de producto " + creado.nombre)
+            // El stock inicial entra como ENTRADA de existencias, no como un
+            // campo del producto: asi queda en la bitacora igual que cualquier
+            // otra produccion, en vez de aparecer de la nada.
+            // `descontarMaterialesAhora = false` porque estas piezas ya estaban
+            // hechas antes de que la app existiera: sus materiales ya se
+            // gastaron y descontarlos ahora seria cobrarlos dos veces.
+            if (!esBajoPedido && stockInicial > 0) {
+                repo.registrarExistencias(creado.id, stockInicial, descontarMaterialesAhora = false)
+                repo.registrarLog(
+                    fecha, "manual",
+                    "Stock inicial de " + creado.nombre + ": " + stockInicial + " piezas"
+                )
+            }
             creado.id
         } else {
             repo.editarProducto(id, nombre.trim(), precioVenta)

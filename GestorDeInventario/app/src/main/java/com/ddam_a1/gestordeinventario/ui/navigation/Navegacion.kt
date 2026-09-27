@@ -22,6 +22,7 @@ import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.hoy
 import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
+import com.ddam_a1.gestordeinventario.ui.ventasPorDiaDeLaSemana
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
 import com.ddam_a1.gestordeinventario.ui.screens.UsoEnProducto
@@ -33,7 +34,7 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaCrearAdmin
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaDetalleMaterial
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaDetalleProducto
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaElegirModo
-import com.ddam_a1.gestordeinventario.ui.screens.PantallaEstadisticas
+import com.ddam_a1.gestordeinventario.ui.screens.PantallaRendimiento
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaExportar
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaFormularioMaterial
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaFormularioProducto
@@ -182,29 +183,27 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 onAvisos = { navController.navigate(RUTA_AVISOS) },
                 onConfiguracion = { navController.navigate(RUTA_CONFIGURACION) },
                 onNuevaVenta = { navController.navigate(RUTA_NUEVA_VENTA) },
-                // "Entrada stock" lleva al inventario: la entrada se registra
-                // desde el detalle de cada material, no hay pantalla propia.
-                onEntradaStock = { irADestino(DestinoBarra.INVENTARIO) },
                 onInventario = { irADestino(DestinoBarra.INVENTARIO) },
                 onCatalogo = { irADestino(DestinoBarra.CATALOGO) },
                 onVenta = { navController.navigate(RUTA_HISTORIAL_VENTAS) },
+                onRendimiento = { navController.navigate(RUTA_RENDIMIENTO) },
                 onDestino = { destino -> irADestino(destino) }
             )
         }
 
-        composable(RUTA_ESTADISTICAS) {
+        composable(RUTA_RENDIMIENTO) {
             val ventas by inventarioVm.ventas.collectAsState()
             val productos by inventarioVm.productos.collectAsState()
 
-            // Arranca en MENSUAL; el historial arranca en DIARIO. Son dos
-            // estados independientes a proposito.
-            var periodo by remember { mutableStateOf(Periodo.MENSUAL) }
+            // Arranca en SEMANAL, que es lo que muestra la grafica de barras;
+            // el historial arranca en DIARIO. Son dos estados independientes.
+            var periodo by remember { mutableStateOf(Periodo.SEMANAL) }
 
             val delPeriodo = inventarioVm.filtrarVentasPorPeriodo(ventas, periodo, hoy())
             val ingresos = inventarioVm.calcularIngresos(delPeriodo)
             val ganancia = inventarioVm.calcularGanancias(delPeriodo)
 
-            PantallaEstadisticas(
+            PantallaRendimiento(
                 periodo = periodo,
                 onPeriodo = { nuevo -> periodo = nuevo },
                 ingresos = ingresos,
@@ -212,6 +211,8 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 // El costo no se consulta: es lo que queda. El coerce es por si
                 // una venta cancelada deja la ganancia arriba de los ingresos.
                 costo = (ingresos - ganancia).coerceAtLeast(0.0),
+                perdidas = inventarioVm.calcularPerdidas(delPeriodo),
+                ventasPorDia = ventasPorDiaDeLaSemana(delPeriodo, fechaDe = { it.fecha }) { v -> v.total },
                 masVendidos = inventarioVm.productosMasVendidos(delPeriodo, 5).map { (id, piezas) ->
                     val producto = productos.find { it.id == id }
                     VentaPorProducto(producto?.nombre ?: "Producto", piezas, producto?.precioVenta ?: 0.0)
@@ -386,6 +387,7 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                             precioVenta = datos.precioVenta,
                             esBajoPedido = datos.esBajoPedido,
                             stockMinimo = datos.stockMinimo,
+                            stockInicial = datos.stockInicial,
                             fecha = hoy()
                         )
                         // Un producto recien creado se va derecho a su receta, y

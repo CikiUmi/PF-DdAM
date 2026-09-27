@@ -1,6 +1,8 @@
 package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,11 +58,14 @@ fun CampoTexto(
     etiqueta: String,
     onCambio: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Decimales: solo digitos y un punto. Teclado numerico. */
     soloNumeros: Boolean = false,
+    /** Enteros: solo digitos, ni punto ni coma. Para piezas y dias. */
+    soloEnteros: Boolean = false,
     sufijo: String? = null,
     /** Oculta lo escrito y agrega el ojo para mostrarlo (Figma: Tipo=Password). */
     esContrasena: Boolean = false,
-    marcador: String = "Escribe aquí...",
+    marcador: String = "",
     /**
      * Si no es null: el borde se pone rojo y el mensaje aparece DEBAJO del
      * campo, con la etiqueta intacta. Asi lo compone la pantalla de login
@@ -74,12 +79,32 @@ fun CampoTexto(
     var visible by remember { mutableStateOf(false) }
     val hayError = error != null
 
+    // El foco se escucha con el MISMO interactionSource que recibe el campo.
+    // Si se dejara que BasicTextField se hiciera uno propio, nadie de aqui
+    // afuera podria enterarse de cuando esta seleccionado.
+    val interacciones = remember { MutableInteractionSource() }
+    val enfocado by interacciones.collectIsFocusedAsState()
+
+    // El error manda sobre el foco: si el campo esta mal, tiene que verse mal
+    // aunque el cursor este dentro.
+    val colorBorde = when {
+        hayError -> MaterialTheme.colorScheme.error
+        enfocado -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    // Borde mas grueso al enfocar: la diferencia no se comunica solo por color.
+    val grosorBorde = if (hayError || enfocado) Medidas.bordeGrueso else Medidas.borde
+
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Margenes.sm)) {
 
         Text(
             text = etiqueta,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
+            color = when {
+                hayError -> MaterialTheme.colorScheme.error
+                enfocado -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurface
+            }
         )
 
         Row(
@@ -89,9 +114,8 @@ fun CampoTexto(
                 .clip(RoundedCornerShape(Radios.campo))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .border(
-                    width = if (hayError) Medidas.bordeGrueso else Medidas.borde,
-                    color = if (hayError) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.outlineVariant,
+                    width = grosorBorde,
+                    color = colorBorde,
                     shape = RoundedCornerShape(Radios.campo)
                 )
                 .padding(horizontal = Margenes.lg),
@@ -108,11 +132,10 @@ fun CampoTexto(
                 }
                 BasicTextField(
                     value = valor,
-                    onValueChange = { nuevo ->
-                        if (!soloNumeros) onCambio(nuevo)
-                        else if (nuevo.isEmpty() || nuevo.matches(Regex("^\\d*[.,]?\\d*$")))
-                            onCambio(nuevo.replace(',', '.'))
-                    },
+                    // El filtro va aqui y no en la pantalla: si dejara pasar la
+                    // letra y luego alguien la quitara al guardar, el usuario
+                    // veria su letra escrita y desaparecer sin explicacion.
+                    onValueChange = { nuevo -> onCambio(filtrar(valor, nuevo, soloNumeros, soloEnteros)) },
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onSurface
@@ -122,6 +145,7 @@ fun CampoTexto(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = when {
                             esContrasena -> KeyboardType.Password
+                            soloEnteros -> KeyboardType.Number
                             soloNumeros -> KeyboardType.Decimal
                             else -> KeyboardType.Text
                         }
@@ -130,6 +154,7 @@ fun CampoTexto(
                         if (esContrasena && !visible) PasswordVisualTransformation()
                         else VisualTransformation.None,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    interactionSource = interacciones,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -171,4 +196,38 @@ fun CampoTexto(
             )
         }
     }
+}
+
+// ============================================================
+//  EL FILTRO DE LO QUE SE PUEDE ESCRIBIR
+//
+//  Devuelve lo nuevo si es valido, y lo ANTERIOR si no. Rechazar asi (en vez
+//  de borrar el caracter malo) hace que la tecla simplemente no haga nada,
+//  que es lo que el usuario espera de un campo numerico.
+//
+//  El cero guia: los campos numericos arrancan en "0" para que se vea que van
+//  numeros. Si se dejara tal cual, teclear 5 daria "05". Por eso, cuando el
+//  valor es exactamente "0" y llega un digito, el cero se va. Pero si llega un
+//  punto se queda, porque "0.5" si es lo que se quiere.
+// ============================================================
+
+private fun filtrar(
+    actual: String,
+    nuevo: String,
+    soloNumeros: Boolean,
+    soloEnteros: Boolean
+): String {
+    if (!soloNumeros && !soloEnteros) return nuevo
+
+    val n = nuevo.replace(',', '.')
+    if (n.isEmpty()) return n
+
+    val valido = if (soloEnteros) n.all { it.isDigit() }
+    else n.all { it.isDigit() || it == '.' } && n.count { it == '.' } <= 1
+    if (!valido) return actual
+
+    // Se quita el cero de la izquierda: "05" -> "5", pero "0.5" se respeta.
+    if (actual == "0" && n.length == 2 && n[0] == '0' && n[1].isDigit()) return n.substring(1)
+
+    return n
 }

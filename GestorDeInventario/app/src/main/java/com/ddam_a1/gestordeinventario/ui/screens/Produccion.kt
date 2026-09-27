@@ -31,7 +31,7 @@ fun PantallaProduccion(
     onProducir: (cantidad: Int, descontarMateriales: Boolean) -> Unit,
     onAtras: () -> Unit
 ) {
-    var cantidad by remember { mutableStateOf("1") }
+    var cantidad by remember { mutableStateOf("0") }
     var preguntar by remember { mutableStateOf(false) }
     val n = cantidad.toIntOrNull() ?: 0
 
@@ -39,8 +39,13 @@ fun PantallaProduccion(
         BarraSuperior("Registrar produccion", nombreProducto, onAtras = onAtras)
     }) {
         item {
-            CampoTexto(cantidad, "Cantidad a producir",
-                { nuevo -> cantidad = nuevo.filter { c -> c.isDigit() } }, sufijo = "piezas")
+            // El filtro ya no se hace aqui a mano: `soloEnteros` lo resuelve
+            // en el componente, junto con el teclado numerico y el cero guia.
+            CampoTexto(
+                cantidad, "Cantidad a producir", { cantidad = it },
+                soloEnteros = true, sufijo = "piezas",
+                error = if (n <= 0) "Indique la cantidad a producir" else null
+            )
         }
         item { EncabezadoSeccion("Materiales necesarios") }
         items(receta.size) { i ->

@@ -72,7 +72,7 @@ fun PantallaInventario(
             }
         }
         if (lista.isEmpty()) {
-            item { EstadoVacio("Sin materiales", "Toca el boton para agregar el primero") }
+            item { EstadoVacio("Sin materiales", "Los materiales registrados aparecerán aquí") }
         } else {
             items(lista.size) { i ->
                 val m = lista[i]

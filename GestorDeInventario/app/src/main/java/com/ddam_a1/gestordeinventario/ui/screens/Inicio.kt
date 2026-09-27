@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -46,10 +47,10 @@ fun PantallaInicio(
     onAvisos: () -> Unit,
     onConfiguracion: () -> Unit,
     onNuevaVenta: () -> Unit,
-    onEntradaStock: () -> Unit,
     onInventario: () -> Unit,
     onCatalogo: () -> Unit,
     onVenta: (Venta) -> Unit,
+    onRendimiento: () -> Unit,
     onDestino: (DestinoBarra) -> Unit
 ) {
     Marco(
@@ -60,7 +61,7 @@ fun PantallaInicio(
                 Modifier.fillMaxWidth().padding(
                     start = Margenes.pantalla, end = Margenes.sm, top = Margenes.sm
                 ),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     "Inicio",
@@ -98,12 +99,12 @@ fun PantallaInicio(
                 horizontalArrangement = Arrangement.spacedBy(Margenes.md)
             ) {
                 AccionRapida(
-                    Iconos.Ventas, "Registrar venta",
+                    Iconos.Carrito, "Registrar venta",
                     modifier = Modifier.weight(1f), onClick = onNuevaVenta
                 )
                 AccionRapida(
-                    Iconos.Caja, "Entrada stock",
-                    modifier = Modifier.weight(1f), onClick = onEntradaStock
+                    Iconos.Tendencia, "Rendimiento",
+                    modifier = Modifier.weight(1f), onClick = onRendimiento
                 )
             }
         }
@@ -144,8 +145,8 @@ fun PantallaInicio(
         if (ultimasVentas.isEmpty()) {
             item {
                 EstadoVacio(
-                    "Sin ventas todavía",
-                    "Toca «Registrar venta» para anotar la primera",
+                    "Sin ventas registradas",
+                    "Las ventas registradas aparecerán aquí",
                     textoAccion = "Registrar venta",
                     onAccion = onNuevaVenta
                 )

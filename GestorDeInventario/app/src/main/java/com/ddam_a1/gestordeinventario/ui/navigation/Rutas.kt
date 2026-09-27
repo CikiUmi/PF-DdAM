@@ -17,7 +17,7 @@ const val RUTA_CREAR_ADMIN = "crearAdmin"
 const val RUTA_ELEGIR_MODO = "elegirModo"
 
 const val RUTA_INICIO = "inicio"
-const val RUTA_ESTADISTICAS = "estadisticas"
+const val RUTA_RENDIMIENTO = "rendimiento"
 const val RUTA_INVENTARIO = "inventario"
 const val RUTA_CATALOGO = "catalogo"
 const val RUTA_NUEVA_VENTA = "nuevaVenta"

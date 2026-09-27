@@ -57,7 +57,7 @@ fun PantallaCrearAdmin(
                 // Solo se queja cuando ya escribiste algo: regañar por un campo
                 // vacio que acabas de tocar es ruido.
                 error = if (clave.isNotEmpty() && clave.length < 8)
-                    "La contraseña necesita al menos 8 caracteres" else null)
+                    "La contraseña debe tener al menos 8 caracteres" else null)
 
             CampoTexto(clave2, "Confirmar contraseña", { clave2 = it },
                 esContrasena = true,

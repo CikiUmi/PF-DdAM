@@ -76,7 +76,7 @@ fun PantallaReceta(
 
     Marco(barra = { BarraSuperior("Materiales", nombreProducto, onAtras = salir) }) {
         if (materiales.isEmpty()) {
-            item { EstadoVacio("No hay materiales", "Agrega materiales al inventario primero") }
+            item { EstadoVacio("Sin materiales", "Registre materiales en el inventario para armar la receta") }
         }
         items(materiales.size) { i ->
             val material = materiales[i]

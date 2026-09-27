@@ -63,7 +63,7 @@ fun PantallaNuevaVenta(
     Marco(barra = { BarraSuperior("Nueva venta", onAtras = onAtras) }) {
         item { BarraBusqueda(buscar, "Agregar producto al ticket") { buscar = it } }
         if (encontrados.isEmpty()) {
-            item { EstadoVacio("Sin productos", "Agrega productos al catalogo primero") }
+            item { EstadoVacio("Sin productos", "Registre productos en el catálogo para poder vender") }
         }
         items(encontrados.size) { i ->
             val producto = encontrados[i]

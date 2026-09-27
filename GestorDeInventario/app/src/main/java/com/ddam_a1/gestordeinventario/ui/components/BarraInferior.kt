@@ -39,7 +39,7 @@ enum class DestinoBarra(val ruta: String, val icono: ImageVector, val etiqueta: 
     INICIO(RUTA_INICIO, Iconos.Inicio, "Inicio"),
     INVENTARIO(RUTA_INVENTARIO, Iconos.Inventario, "Inventario"),
     CATALOGO(RUTA_CATALOGO, Iconos.Catalogo, "Catalogo"),
-    VENTAS(RUTA_HISTORIAL_VENTAS, Iconos.Ventas, "Ventas")
+    VENTAS(RUTA_HISTORIAL_VENTAS, Iconos.Carrito, "Ventas")
 }
 
 /**

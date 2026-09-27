@@ -49,7 +49,7 @@ fun SelectorPestanas(
             .fillMaxWidth()
             .height(Medidas.control)
             .clip(RoundedCornerShape(Radios.pestanas))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(Margenes.xs)
             .selectableGroup(),
         verticalAlignment = Alignment.CenterVertically

@@ -69,7 +69,7 @@ fun PantallaCatalogo(
             }
         }
         if (lista.isEmpty()) {
-            item { EstadoVacio("Sin productos", "Agrega el primero para poder vender") }
+            item { EstadoVacio("Sin productos", "Los productos registrados aparecerán aquí") }
         } else {
             items(lista.size) { i ->
                 val producto = lista[i]
