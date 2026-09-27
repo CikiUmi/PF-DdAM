@@ -37,6 +37,10 @@ fun ChipFiltro(texto: String, activo: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             texto,
+            // Un chip con el texto partido en dos renglones ("Emplea / do")
+            // se ve roto. Antes que eso, que la fila se desplace.
+            maxLines = 1,
+            softWrap = false,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
             color = letra
         )

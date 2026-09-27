@@ -48,13 +48,30 @@ val AppTypography = Typography(
     headlineSmall = baseline.headlineSmall.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold),
     titleLarge = baseline.titleLarge.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold),
     titleMedium = baseline.titleMedium.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold),
-    titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold),
+    titleSmall = baseline.titleSmall.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
+    // ============================================================
+    //  NINGUNA LETRA BAJA DE 16
+    //
+    //  La escala de Material trae body/label chicos: bodyMedium 14, bodySmall
+    //  y labelMedium 12, labelSmall 11. En un telefono, a un metro de
+    //  distancia y con las manos ocupadas, 11 puntos no se leen.
+    //
+    //  Se suben TODOS a 16 aqui y no en cada Text por dos motivos: queda un
+    //  solo sitio que cambiar si el dia de manana se decide otro minimo, y
+    //  cualquier pantalla que se escriba manana hereda la regla sin que nadie
+    //  se acuerde de ella.
+    //
+    //  La jerarquia no se pierde: sigue estando en el PESO y en el COLOR
+    //  (onSurface contra onSurfaceVariant), que es como la usa el Figma. Lo
+    //  que se pierde es distinguir dos textos solo por su tamano, y eso ya no
+    //  funcionaba para quien no ve de cerca.
+    // ============================================================
     bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily),
-    bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily),
-    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily),
-    labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily),
-    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily),
-    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily),
+    bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
 )
 
 // ============================================================

@@ -35,6 +35,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
+import com.ddam_a1.gestordeinventario.ui.components.FilaChips
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
@@ -182,7 +183,7 @@ private fun VentasConPanel(
 
 @Composable
 private fun SelectorPeriodoVentas(periodo: Periodo, onPeriodo: (Periodo) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Margenes.sm)) {
+    FilaChips {
         ChipFiltro("Hoy", periodo == Periodo.DIARIO) { onPeriodo(Periodo.DIARIO) }
         ChipFiltro("Semana", periodo == Periodo.SEMANAL) { onPeriodo(Periodo.SEMANAL) }
         ChipFiltro("Mes", periodo == Periodo.MENSUAL) { onPeriodo(Periodo.MENSUAL) }

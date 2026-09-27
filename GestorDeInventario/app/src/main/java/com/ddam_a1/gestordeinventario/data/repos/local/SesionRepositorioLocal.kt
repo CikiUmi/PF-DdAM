@@ -83,6 +83,50 @@ class SesionRepositorioLocal @Inject constructor(
         return usuario
     }
 
+    override suspend fun editarUsuario(
+        quienEdita: Usuario,
+        usuarioId: String,
+        nombreUsuario: String,
+        contrasena: String?,
+        rol: Rol
+    ): Boolean {
+        if (quienEdita.rol != Rol.ADMINISTRADOR) return false      // RF25
+        val actual = usuarioDao.leer(usuarioId) ?: return false
+
+        // Degradar al ultimo administrador deja el negocio sin quien
+        // administre. Se comprueba aqui y no en la pantalla porque es una
+        // regla del negocio, no un detalle de como se ve.
+        if (actual.rol == Rol.ADMINISTRADOR && rol != Rol.ADMINISTRADOR &&
+            usuarioDao.cuantosAdministradores() <= 1
+        ) return false
+
+        usuarioDao.actualizar(
+            actual.copy(
+                nombreUsuario = nombreUsuario.trim(),
+                // La contrasena en null se deja como estaba: editar el rol no
+                // deberia obligar a volver a teclearla.
+                contrasenaHash =
+                    if (contrasena.isNullOrBlank()) actual.contrasenaHash
+                    else hashContrasena(contrasena),
+                rol = rol
+            )
+        )
+        return true
+    }
+
+    override suspend fun eliminarUsuario(quienElimina: Usuario, usuarioId: String): Boolean {
+        if (quienElimina.rol != Rol.ADMINISTRADOR) return false     // RF25
+        // Nadie se borra a si mismo: te quedarias con la sesion abierta de un
+        // usuario que ya no existe.
+        if (quienElimina.id == usuarioId) return false
+
+        val victima = usuarioDao.leer(usuarioId) ?: return false
+        if (victima.rol == Rol.ADMINISTRADOR && usuarioDao.cuantosAdministradores() <= 1) {
+            return false
+        }
+        return usuarioDao.borrar(usuarioId) > 0
+    }
+
     /** La comparacion la hace SQLite: nunca se trae el hash a Kotlin. */
     override suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario? =
         usuarioDao.autenticar(nombreUsuario.trim(), hashContrasena(contrasena))

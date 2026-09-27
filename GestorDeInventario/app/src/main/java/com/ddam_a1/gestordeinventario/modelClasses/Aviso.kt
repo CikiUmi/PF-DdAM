@@ -19,6 +19,15 @@ enum class TipoAviso { STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO, CADUCIDAD }
 data class Aviso(
     val referenciaId: String,
     val tipo: TipoAviso,
+    /**
+     * De QUE es el aviso: el nombre del material o del producto.
+     *
+     * Va aparte del mensaje y no se recorta de el. La pantalla lo ensena como
+     * titulo y el mensaje como detalle (Figma 71:6583 y 71:6584); sacarlo del
+     * mensaje con un `split` acabaria cortando mal en cuanto cambie una
+     * palabra de la frase.
+     */
+    val titulo: String,
     val mensaje: String,
     /** Lo puso el repositorio consultando la tabla de descartes. No se guarda aqui. */
     val leido: Boolean = false

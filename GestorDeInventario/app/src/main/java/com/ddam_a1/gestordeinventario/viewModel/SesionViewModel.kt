@@ -119,6 +119,29 @@ class SesionViewModel @Inject constructor(
         return ResultadoAltaUsuario.CREADO
     }
 
+    /** RF26. Devuelve el motivo del fallo, o null si salio bien. */
+    suspend fun editarUsuario(
+        usuarioId: String,
+        nombreUsuario: String,
+        contrasena: String?,
+        rol: Rol
+    ): String? {
+        val quien = _usuarioActual.value ?: return "No hay sesión iniciada."
+        if (nombreUsuario.isBlank()) return "Escriba un nombre de usuario."
+        val ok = repo.editarUsuario(quien, usuarioId, nombreUsuario, contrasena, rol)
+        return if (ok) null
+        else "No se pudo guardar. Revise que quede al menos un administrador."
+    }
+
+    /** RF27. Devuelve el motivo del fallo, o null si salio bien. */
+    suspend fun eliminarUsuario(usuarioId: String): String? {
+        val quien = _usuarioActual.value ?: return "No hay sesión iniciada."
+        if (quien.id == usuarioId) return "No puede eliminar su propio usuario."
+        val ok = repo.eliminarUsuario(quien, usuarioId)
+        return if (ok) null
+        else "No se pudo eliminar. Debe quedar al menos un administrador."
+    }
+
     fun elegirModo(equipo: Boolean) {
         // Sin copia local: `modoEquipo` cuelga del Flow de la base, asi que
         // se actualiza solo en cuanto Room emite la fila nueva.

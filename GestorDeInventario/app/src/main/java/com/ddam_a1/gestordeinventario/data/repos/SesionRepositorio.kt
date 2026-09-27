@@ -36,6 +36,29 @@ interface SesionRepositorio {
     ): Usuario
     suspend fun crearUsuario(quienCrea: Usuario, nombreUsuario: String, contrasena: String, rol: Rol): Usuario?
 
+    /**
+     * RF26: cambia nombre, rol y (si se manda) contrasena de un usuario.
+     *
+     * `contrasena` en null significa "dejala como esta": es lo que pasa al
+     * editar solo el rol, y evita tener que volver a teclearla.
+     */
+    suspend fun editarUsuario(
+        quienEdita: Usuario,
+        usuarioId: String,
+        nombreUsuario: String,
+        contrasena: String?,
+        rol: Rol
+    ): Boolean
+
+    /**
+     * RF27: borra un usuario.
+     *
+     * Devuelve false si se intenta borrar al ULTIMO administrador: un negocio
+     * sin administrador queda sin nadie que pueda dar de alta a nadie, y eso
+     * no tiene vuelta atras desde dentro de la app.
+     */
+    suspend fun eliminarUsuario(quienElimina: Usuario, usuarioId: String): Boolean
+
     /** Devuelve el usuario si la contrasena es correcta, o null si no. */
     suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario?
 

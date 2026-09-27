@@ -39,6 +39,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
+import com.ddam_a1.gestordeinventario.ui.components.FilaChips
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
@@ -231,7 +232,7 @@ private fun InventarioTabla(
 
 @Composable
 private fun FilaFiltros(filtro: FiltroInv, onFiltro: (FiltroInv) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Margenes.sm)) {
+    FilaChips {
         FiltroInv.entries.forEach { f ->
             ChipFiltro(f.etiqueta, filtro == f) { onFiltro(f) }
         }

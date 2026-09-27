@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -51,6 +52,11 @@ import com.ddam_a1.gestordeinventario.ui.theme.anchoPantallaDe
 fun HojaInferior(
     titulo: String,
     onCerrar: () -> Unit,
+    /** Una linea de contexto bajo el titulo. Figma 71:7035. */
+    subtitulo: String? = null,
+    /** La X de la esquina. Se ensena cuando la hoja es un formulario largo y
+     *  tocar fuera para cerrarla no seria evidente. */
+    conCerrar: Boolean = false,
     contenido: @Composable ColumnScope.() -> Unit
 ) {
     // El boton de atras del telefono cierra la hoja, no la pantalla: mientras
@@ -116,12 +122,33 @@ fun HojaInferior(
                 }
             }
 
-            Text(
-                titulo,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { heading() }
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+            ) {
+                Column(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        titulo,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    if (subtitulo != null) {
+                        Text(
+                            subtitulo,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (conCerrar) {
+                    BotonIcono(Iconos.Cerrar, "Cerrar", onCerrar)
+                }
+            }
 
             contenido()
         }

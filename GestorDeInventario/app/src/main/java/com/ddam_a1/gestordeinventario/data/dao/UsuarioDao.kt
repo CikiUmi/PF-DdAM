@@ -25,6 +25,20 @@ interface UsuarioDao {
     @Query("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = :nombre COLLATE NOCASE")
     suspend fun cuantosConNombre(nombre: String): Int
 
+    /**
+     * Cuantos administradores hay. Se pregunta ANTES de degradar o de borrar
+     * a uno: un negocio sin administrador se queda sin nadie que pueda dar de
+     * alta a nadie, y desde dentro de la app eso no tiene vuelta atras.
+     */
+    @Query("SELECT COUNT(*) FROM usuarios WHERE rol = 'ADMINISTRADOR'")
+    suspend fun cuantosAdministradores(): Int
+
+    @Query("SELECT * FROM usuarios WHERE _id = :id LIMIT 1")
+    suspend fun leer(id: String): Usuario?
+
+    @Query("DELETE FROM usuarios WHERE _id = :id")
+    suspend fun borrar(id: String): Int
+
     /** Para el login: se busca por nombre Y por hash, nunca se lee la contrasena. */
     @Query("SELECT * FROM usuarios WHERE nombre_usuario = :nombre AND contrasena_hash = :hash LIMIT 1")
     suspend fun autenticar(nombre: String, hash: String): Usuario?

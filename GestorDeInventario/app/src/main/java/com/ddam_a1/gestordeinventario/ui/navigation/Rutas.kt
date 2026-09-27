@@ -25,7 +25,6 @@ const val RUTA_HISTORIAL_VENTAS = "historialVentas"
 
 const val RUTA_AVISOS = "avisos"
 const val RUTA_USUARIOS = "usuarios"
-const val RUTA_PERMISOS = "permisos"
 const val RUTA_CONFIGURACION = "configuracion"
 const val RUTA_EXPORTAR = "exportar"
 

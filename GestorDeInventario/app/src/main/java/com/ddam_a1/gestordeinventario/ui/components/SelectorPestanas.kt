@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.Medidas
 import com.ddam_a1.gestordeinventario.ui.theme.Radios
@@ -75,7 +76,12 @@ fun SelectorPestanas(
                     ),
                     color = if (activa) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    // Las pestanas se reparten el ancho a partes iguales, asi
+                    // que una etiqueta larga se partiria en dos renglones y
+                    // creceria la barra entera. Mejor recortar con puntos.
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

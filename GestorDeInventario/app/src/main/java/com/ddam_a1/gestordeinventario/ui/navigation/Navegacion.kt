@@ -45,14 +45,14 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaFormularioProducto
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaDetalleVenta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaHistorialVentas
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaInicio
+import com.ddam_a1.gestordeinventario.ui.screens.ArchivoExportable
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonVenta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaInventario
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaLogin
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaNuevaVenta
-import com.ddam_a1.gestordeinventario.ui.screens.PantallaPermisos
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaReceta
-import com.ddam_a1.gestordeinventario.ui.screens.PantallaUsuarios
+import com.ddam_a1.gestordeinventario.ui.screens.PantallaEquipo
 import com.ddam_a1.gestordeinventario.viewModel.InventarioViewModel
 import com.ddam_a1.gestordeinventario.viewModel.ResultadoAltaUsuario
 import com.ddam_a1.gestordeinventario.viewModel.SesionViewModel
@@ -651,28 +651,41 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
             var errorUsuario by remember { mutableStateOf<String?>(null) }
 
-            PantallaUsuarios(
+            PantallaEquipo(
                 usuarios = usuarios,
                 usuarioActual = actual,
                 esAdmin = actual?.rol == Rol.ADMINISTRADOR,
                 error = errorUsuario,
-                onCrearUsuario = { nombre, clave, rol ->
+                // Alta y edicion entran por la MISMA puerta: el id decide cual
+                // de las dos es. La pantalla solo entrega los datos.
+                onGuardarUsuario = { datos ->
                     scope.launch {
-                        errorUsuario = when (sesionVm.crearUsuario(nombre, clave, rol, hoy())) {
-                            ResultadoAltaUsuario.CREADO -> null
-                            ResultadoAltaUsuario.NOMBRE_REPETIDO -> "Ya existe un usuario con ese nombre."
-                            ResultadoAltaUsuario.SIN_PERMISO -> "Solo el administrador puede crear usuarios."
-                            ResultadoAltaUsuario.DATOS_INCOMPLETOS -> "Falta el usuario o la contrasena."
-                        }
+                        errorUsuario =
+                            if (datos.id == null) {
+                                when (sesionVm.crearUsuario(
+                                    datos.nombre, datos.contrasena.orEmpty(), datos.rol, hoy()
+                                )) {
+                                    ResultadoAltaUsuario.CREADO -> null
+                                    ResultadoAltaUsuario.NOMBRE_REPETIDO ->
+                                        "Ya existe un usuario con ese nombre."
+                                    ResultadoAltaUsuario.SIN_PERMISO ->
+                                        "Solo el administrador puede crear usuarios."
+                                    ResultadoAltaUsuario.DATOS_INCOMPLETOS ->
+                                        "Falta el usuario o la contraseña."
+                                }
+                            } else {
+                                sesionVm.editarUsuario(
+                                    datos.id, datos.nombre, datos.contrasena, datos.rol
+                                )
+                            }
                     }
                 },
-                onPermisos = { navController.navigate(RUTA_PERMISOS) },
+                onEliminarUsuario = { id ->
+                    scope.launch { errorUsuario = sesionVm.eliminarUsuario(id) }
+                },
+                onLimpiarError = { errorUsuario = null },
                 onAtras = atras
             )
-        }
-
-        composable(RUTA_PERMISOS) {
-            PantallaPermisos(onAtras = atras)
         }
 
         composable(RUTA_CONFIGURACION) {
@@ -726,22 +739,57 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
         composable(RUTA_EXPORTAR) {
             val ventas by inventarioVm.ventas.collectAsState()
-            var vistaPrevia by remember { mutableStateOf("") }
+            val materiales by inventarioVm.materiales.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
             var rutaGuardada by remember { mutableStateOf<String?>(null) }
 
-            val encabezados = listOf("id", "fecha", "total", "cancelada")
-            val filas = ventas.map { v ->
-                listOf(v.id, v.fecha, v.total.toString(), v.cancelada.toString())
+            // Tres archivos y no uno: el Figma los ensena asi y, sobre todo,
+            // exportar solo las ventas dejaba fuera justo lo que cuesta mas
+            // trabajo volver a teclear, que es el inventario.
+            val ventasCsv = listOf("id", "fecha", "hora", "total", "cancelada") to
+                ventas.map { v ->
+                    listOf(v.id, v.fecha, v.hora, v.total.toString(), v.cancelada.toString())
+                }
+            val materialesCsv = listOf(
+                "id", "nombre", "unidad", "costo_unitario", "cantidad", "stock_minimo"
+            ) to materiales.map { m ->
+                listOf(
+                    m.id, m.nombre, m.unidadMedida, m.costoUnitario.toString(),
+                    m.cantidadDisponible.toString(), m.stockMinimo.toString()
+                )
+            }
+            val productosCsv = listOf(
+                "id", "nombre", "precio_venta", "bajo_pedido", "stock", "stock_minimo"
+            ) to productos.map { p ->
+                listOf(
+                    p.id, p.nombre, p.precioVenta.toString(), p.esBajoPedido.toString(),
+                    p.stockDisponible.toString(), p.stockMinimo.toString()
+                )
             }
 
             PantallaExportar(
-                vistaPrevia = vistaPrevia,
+                archivos = listOf(
+                    ArchivoExportable("productos.csv", productos.size),
+                    ArchivoExportable("inventario.csv", materiales.size),
+                    ArchivoExportable("ventas.csv", ventas.size)
+                ),
                 rutaGuardada = rutaGuardada,
                 onExportar = {
                     scope.launch {
-                        vistaPrevia = inventarioVm.vistaPreviaCSV(encabezados, filas).take(300)
-                        rutaGuardada = inventarioVm.exportarACSV("ventas.csv", encabezados, filas)
-                        inventarioVm.registrarLog(hoy(), "manual", "Exportacion de datos generada")
+                        inventarioVm.exportarACSV(
+                            "productos.csv", productosCsv.first, productosCsv.second
+                        )
+                        inventarioVm.exportarACSV(
+                            "inventario.csv", materialesCsv.first, materialesCsv.second
+                        )
+                        // La ruta que se ensena es la del ultimo: los tres
+                        // salen a la misma carpeta, asi que con una basta.
+                        rutaGuardada = inventarioVm.exportarACSV(
+                            "ventas.csv", ventasCsv.first, ventasCsv.second
+                        )
+                        inventarioVm.registrarLog(
+                            hoy(), "manual", "Exportación de datos generada"
+                        )
                     }
                 },
                 onAtras = atras

@@ -63,5 +63,13 @@ object Iconos {
     val Caja        = icono("caja", "M16.5 9.9L7.5 4.7 M21 16V8A2 2 0 0 0 20 6.27L13 2.27A2 2 0 0 0 11 2.27L4 6.27A2 2 0 0 0 3 8V16A2 2 0 0 0 4 17.73L11 21.73A2 2 0 0 0 13 21.73L20 17.73A2 2 0 0 0 21 16Z M3.3 7L12 12.05L20.7 7 M12 22.1V12")
     val Ojo         = icono("ojo", "M2 12C4.5 7.5 8 5.5 12 5.5S19.5 7.5 22 12C19.5 16.5 16 18.5 12 18.5S4.5 16.5 2 12Z M12 9.2A2.8 2.8 0 1 0 12 14.8A2.8 2.8 0 1 0 12 9.2")
     val OjoOculto   = icono("ojoOculto", "M4 12C6 8.6 8.8 6.6 12 6.6C13.2 6.6 14.3 6.9 15.3 7.3 M19.2 9.6C19.9 10.3 20.5 11.1 21 12C18.5 16.5 15 18.5 12 18.5C11 18.5 10 18.3 9.1 18 M3 3L21 21")
+    val Equipo      = icono("equipo", "M17 21V19A4 4 0 0 0 13 15H5A4 4 0 0 0 1 19V21 M9 3A4 4 0 1 0 9 11A4 4 0 1 0 9 3 M23 21V19A4 4 0 0 0 20 15.1 M16 3.1A4 4 0 0 1 16 10.9")
+    val Salir       = icono("salir", "M9 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H9 M16 17L21 12L16 7 M21 12H9")
+    val Historial   = icono("historial", "M1 4V10H7 M3.5 15A9 9 0 1 0 5.6 5.6L1 10 M12 7.5V12L15.5 14")
+    val CajaMenos   = icono("cajaMenos", "M21 10V8A2 2 0 0 0 20 6.27L13 2.27A2 2 0 0 0 11 2.27L4 6.27A2 2 0 0 0 3 8V16A2 2 0 0 0 4 17.73L11 21.73A2 2 0 0 0 13 21.73L15 20.6 M3.3 7L12 12.05L20.7 7 M12 22.1V12 M16 16H22")
+    val CalendarioReloj = icono("calendarioReloj", "M21 7.5V6A2 2 0 0 0 19 4H5A2 2 0 0 0 3 6V20A2 2 0 0 0 5 22H8.5 M16 2V6 M8 2V6 M3 10H8 M17.5 17.5L16 16.3V14 M22 16A6 6 0 1 1 10 16A6 6 0 1 1 22 16")
+    val Archivo     = icono("archivo", "M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z M14 2V8H20 M8 13H16 M8 17H16")
+    val CirculoCheck = icono("circuloCheck", "M12 2A10 10 0 1 0 12 22A10 10 0 1 0 12 2 M8 12L11 15L16 9", 1.9f)
+    val Circulo     = icono("circulo", "M12 2A10 10 0 1 0 12 22A10 10 0 1 0 12 2", 1.9f)
     val Etiqueta    = icono("etiqueta", "M20.59 13.41L13.42 20.58A2 2 0 0 1 10.59 20.58L2 12V2H12L20.59 10.59A2 2 0 0 1 20.59 13.41Z M7 7H7.01")
 }

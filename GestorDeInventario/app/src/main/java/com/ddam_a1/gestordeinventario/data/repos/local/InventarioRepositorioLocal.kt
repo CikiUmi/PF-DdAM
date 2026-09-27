@@ -271,7 +271,9 @@ class InventarioRepositorioLocal @Inject constructor(
             .map {
                 Aviso(
                     it.id, TipoAviso.STOCK_BAJO_MATERIAL,
-                    "El material '" + it.nombre + "' esta bajo en inventario"
+                    it.nombre,
+                    "Quedan " + sinCeroSobrante(it.cantidadDisponible) + " " + it.unidadMedida +
+                        " · mínimo " + sinCeroSobrante(it.stockMinimo) + " " + it.unidadMedida
                 )
             }
 
@@ -281,7 +283,8 @@ class InventarioRepositorioLocal @Inject constructor(
             .map {
                 Aviso(
                     it.id, TipoAviso.STOCK_BAJO_PRODUCTO,
-                    "Quedan " + it.stockDisponible + " piezas de '" + it.nombre + "'"
+                    it.nombre,
+                    "Quedan " + it.stockDisponible + " piezas · mínimo " + it.stockMinimo
                 )
             }
 
@@ -295,8 +298,9 @@ class InventarioRepositorioLocal @Inject constructor(
                     avisos.add(
                         Aviso(
                             material.id, TipoAviso.CADUCIDAD,
-                            sinCeroSobrante(lote.cantidad) + " " + material.unidadMedida + " de '" +
-                                material.nombre + "' caducan el " + lote.caducidad
+                            material.nombre,
+                            "Caduca el " + lote.caducidad + " · " +
+                                sinCeroSobrante(lote.cantidad) + " " + material.unidadMedida
                         )
                     )
                 }
@@ -512,7 +516,10 @@ class InventarioRepositorioLocal @Inject constructor(
             ventaDao.guardarVenta(venta)
             ventaDao.guardarItems(itemsVendidos)
 
-            registrarLog(fecha, "venta", "Venta " + ventaId + " registrada por un total de " + total)
+            registrarLog(
+                fecha, "venta",
+                "Venta " + folioCorto(ventaId) + " registrada por un total de " + total
+            )
             ResultadoVenta.Exito(venta)   // sin `return`: es el valor del bloque
         }
     }
@@ -528,3 +535,19 @@ class InventarioRepositorioLocal @Inject constructor(
  */
 private fun sinCeroSobrante(v: Double): String =
     if (v % 1.0 == 0.0) v.toInt().toString() else String.format(java.util.Locale.getDefault(), "%.2f", v)
+
+/**
+ * Los ultimos seis caracteres del id, en mayusculas: "VTA-3F91C2".
+ *
+ * El id de una venta es un UUID de 36 caracteres. Escrito entero en la
+ * bitacora ocupa el renglon completo y no dice nada; recortado por la
+ * pantalla queda un "Venta 3732cc32-0994-4e91-a9a0-..." que tampoco.
+ *
+ * Es el gemelo de `folioDe()` de ui/Formato.kt, separado porque `data/` no
+ * importa de `ui/`. Si algun dia hay un consecutivo de verdad (una columna
+ * numero_de_venta), los dos se cambian por el.
+ */
+private fun folioCorto(id: String): String {
+    val limpio = id.filter { it.isLetterOrDigit() }
+    return "VTA-" + (if (limpio.length <= 6) limpio else limpio.takeLast(6)).uppercase()
+}
