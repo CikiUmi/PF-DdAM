@@ -432,8 +432,14 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 materiales = materiales,
                 recetaActual = producto?.receta.orEmpty()
                     .associate { it.materialId to it.cantidadUsada },
+                precioActual = producto?.precioVenta ?: 0.0,
                 esProductoNuevo = esNuevo,
-                onGuardar = { ingredientes -> inventarioVm.guardarReceta(productoId, ingredientes) },
+                // El paso 2 guarda las dos cosas: la receta dice cuanto cuesta
+                // producirlo y el precio es la respuesta a ese costo.
+                onGuardar = { ingredientes, precio ->
+                    inventarioVm.guardarReceta(productoId, ingredientes)
+                    inventarioVm.asignarPrecioVenta(productoId, precio)
+                },
                 onDescartar = {
                     // El producto ya se habia creado para poder colgarle la
                     // receta. Si te arrepientes, se borra y se regresa al

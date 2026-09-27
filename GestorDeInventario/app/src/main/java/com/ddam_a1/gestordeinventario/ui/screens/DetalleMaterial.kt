@@ -45,6 +45,7 @@ import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
 import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.components.HojaInferior
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.Pastilla
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
@@ -363,21 +364,6 @@ private fun TarjetaMaterial(material: Material, bajo: Boolean) {
     }
 }
 
-@Composable
-private fun Pastilla(texto: String) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = Margenes.md, vertical = 6.dp)
-    ) {
-        Text(
-            texto,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
 /**
  * Un lote registrado: cuanto entro y cuando caduca (Figma 43:820).

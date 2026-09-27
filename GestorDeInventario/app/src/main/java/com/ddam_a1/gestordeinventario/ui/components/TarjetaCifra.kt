@@ -34,7 +34,16 @@ fun TarjetaCifra(
     fondo: Color,
     contenido: Color,
     modifier: Modifier = Modifier,
-    colorValor: Color = contenido
+    colorValor: Color = contenido,
+    /**
+     * Renglones que puede ocupar la cifra.
+     *
+     * Por omision uno, que es lo que quiere Rendimiento: tres cifras cortas
+     * alineadas. El detalle de producto pide dos para la ganancia, porque
+     * "$12.50 (50%)" no cabe en un tercio de un telefono y recortarlo con
+     * puntos suspensivos escondería justo el porcentaje.
+     */
+    maxLineas: Int = 1
 ) {
     Column(
         modifier
@@ -54,7 +63,7 @@ fun TarjetaCifra(
             valor,
             style = MaterialTheme.typography.tituloMedio,
             color = colorValor,
-            maxLines = 1,
+            maxLines = maxLineas,
             overflow = TextOverflow.Ellipsis
         )
     }
