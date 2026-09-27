@@ -38,7 +38,11 @@ interface VentaDao {
     // si se te olvida en un metodo que devuelve @Relation.
 
     @Transaction
-    @Query("SELECT * FROM ventas ORDER BY fecha DESC")
+    // Fecha y hora, las dos: con solo la fecha, las ventas de un mismo dia
+    // salian en el orden que quisiera SQLite. Con formato "aaaa-mm-dd" y
+    // "HH:mm" el orden alfabetico ya es el cronologico, asi que basta el
+    // ORDER BY. La mas reciente primero, que es como se lee un historial.
+    @Query("SELECT * FROM ventas ORDER BY fecha DESC, hora DESC")
     fun todas(): Flow<List<VentaConItems>>
 
     @Transaction

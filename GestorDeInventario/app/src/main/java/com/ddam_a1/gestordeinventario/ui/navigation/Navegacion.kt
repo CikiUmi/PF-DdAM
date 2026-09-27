@@ -22,6 +22,8 @@ import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
 import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.fechaYHora
+import com.ddam_a1.gestordeinventario.ui.ahora
 import com.ddam_a1.gestordeinventario.ui.hoy
 import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
 import com.ddam_a1.gestordeinventario.ui.ventasPorDiaDeLaSemana
@@ -40,8 +42,10 @@ import com.ddam_a1.gestordeinventario.ui.screens.PantallaRendimiento
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaExportar
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaFormularioMaterial
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaFormularioProducto
+import com.ddam_a1.gestordeinventario.ui.screens.PantallaDetalleVenta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaHistorialVentas
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaInicio
+import com.ddam_a1.gestordeinventario.ui.screens.RenglonVenta
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaInventario
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaLogin
 import com.ddam_a1.gestordeinventario.ui.screens.PantallaNuevaVenta
@@ -516,7 +520,7 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 onConfirmar = { ticket ->
                     scope.launch {
                         val resultado = inventarioVm.registrarVenta(
-                            hoy(), ticket.map { it.key to it.value }
+                            hoy(), ahora(), ticket.map { it.key to it.value }
                         )
                         // Traducir el motivo a algo que se pueda leer es trabajo
                         // de la capa de interfaz, no del ViewModel ni de la
@@ -550,17 +554,63 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             // metricas, y esos los calcula el ViewModel.
             var periodo by remember { mutableStateOf(Periodo.DIARIO) }
 
-            val filtradas = inventarioVm.filtrarVentasPorPeriodo(ventas.reversed(), periodo, hoy())
+            // Sin `reversed()`: el DAO ya las da de la mas reciente a la mas
+            // vieja (ORDER BY fecha DESC, hora DESC), que es como se lee un
+            // historial. Invertirlas dejaba arriba la venta mas antigua.
+            val filtradas = inventarioVm.filtrarVentasPorPeriodo(ventas, periodo, hoy())
 
             PantallaHistorialVentas(
                 ventas = filtradas,
-                nombreProducto = { id -> productos.find { it.id == id }?.nombre ?: "?" },
+                // La grafica siempre ensena la SEMANA, sin importar el chip:
+                // es "ventas por dia", y un solo dia o un mes entero no caben
+                // en siete columnas. Se arma con todas las ventas, no con las
+                // filtradas, o al elegir "Hoy" se quedaria con una sola barra.
+                ventasPorDia = ventasPorDiaDeLaSemana(
+                    ventas.filter { !it.cancelada },
+                    fechaDe = { it.fecha },
+                    valorDe = { it.total }
+                ),
                 ingresos = inventarioVm.calcularIngresos(filtradas),
                 ganancias = inventarioVm.calcularGanancias(filtradas),
                 periodo = periodo,
                 onPeriodo = { nuevo -> periodo = nuevo },
+                onVenta = { id -> navController.navigate(rutaDetalleVenta(id)) },
                 onNuevaVenta = { navController.navigate(RUTA_NUEVA_VENTA) },
                 onDestino = { destino -> irADestino(destino) }
+            )
+        }
+
+        composable(
+            route = RUTA_DETALLE_VENTA,
+            arguments = listOf(navArgument(ARG_ID) { type = NavType.StringType })
+        ) { entrada ->
+            val id = entrada.arguments?.getString(ARG_ID).orEmpty()
+            val ventas by inventarioVm.ventas.collectAsState()
+            val productos by inventarioVm.productos.collectAsState()
+
+            // La venta se saca de la MISMA lista en vivo: al cancelarla, la
+            // lista vuelve a emitir y esta pantalla se entera sola de que ya
+            // esta cancelada, sin que nadie se lo diga.
+            val venta = ventas.find { it.id == id }
+
+            // Masticar los items es trabajo de aqui, que tiene los productos.
+            // El PRECIO sale del item, no del catalogo: es lo que se cobro.
+            val renglones = venta?.items.orEmpty().map { item ->
+                RenglonVenta(
+                    nombre = productos.find { it.id == item.productoId }?.nombre ?: "Producto",
+                    cantidad = item.cantidad,
+                    precioUnitario = item.precioUnitario
+                )
+            }
+
+            PantallaDetalleVenta(
+                ventaId = id,
+                fecha = fechaYHora(venta?.fecha.orEmpty(), venta?.hora.orEmpty()),
+                total = venta?.total ?: 0.0,
+                cancelada = venta?.cancelada ?: false,
+                renglones = renglones,
+                onCancelarVenta = { inventarioVm.cancelarVenta(id, hoy()) },
+                onAtras = atras
             )
         }
 

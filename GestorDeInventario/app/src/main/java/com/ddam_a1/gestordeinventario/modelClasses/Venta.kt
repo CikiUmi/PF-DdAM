@@ -10,6 +10,15 @@ import androidx.room.PrimaryKey
 data class Venta(
     @PrimaryKey @ColumnInfo (name= "_id") val id: String,
     @ColumnInfo (name= "fecha") val fecha: String,
+    /**
+     * La hora, "HH:mm", en columna APARTE de la fecha.
+     *
+     * Metida dentro de `fecha` habria roto todo lo que compara fechas: el
+     * filtro por periodo, la grafica por dia de la semana y el CSV dan por
+     * hecho que `fecha` es exactamente "aaaa-mm-dd". Separada, ordena dentro
+     * del dia y no estorba a nadie.
+     */
+    @ColumnInfo (name= "hora") val hora: String = "",
     @ColumnInfo (name= "total") val total: Double,
     @ColumnInfo (name= "cancelada")var cancelada: Boolean = false // solo se puede cancelar durante el proceso de creación
 

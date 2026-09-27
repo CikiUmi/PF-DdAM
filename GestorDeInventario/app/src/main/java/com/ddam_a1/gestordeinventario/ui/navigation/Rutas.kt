@@ -60,6 +60,9 @@ fun rutaReceta(productoId: String, esNuevo: Boolean = false) =
 const val RUTA_PRODUCCION = "produccion/{" + ARG_ID + "}"
 fun rutaProduccion(productoId: String) = "produccion/" + productoId
 
+const val RUTA_DETALLE_VENTA = "venta/{" + ARG_ID + "}"
+fun rutaDetalleVenta(ventaId: String) = "venta/" + ventaId
+
 
 // ---------- rutas con id OPCIONAL ----------
 //

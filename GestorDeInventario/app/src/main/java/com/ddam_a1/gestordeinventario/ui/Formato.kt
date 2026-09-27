@@ -7,6 +7,14 @@ import java.util.Locale
 
 fun hoy(): String = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
+/**
+ * La hora del reloj, "HH:mm". Gemela de `hoy()`.
+ *
+ * Formato de 24 horas a proposito: es el que ordena alfabeticamente igual que
+ * cronologicamente, que es de lo que vive el ORDER BY de VentaDao.
+ */
+fun ahora(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
 fun dinero(v: Double): String = "$" + String.format(Locale.getDefault(), "%,.2f", v)
 
 fun cant(v: Double): String =
@@ -107,3 +115,28 @@ fun filtrarNumero(actual: String, nuevo: String, soloEnteros: Boolean = false): 
         else -> sinCeros
     }
 }
+
+/**
+ * Un folio legible a partir del id de una venta.
+ *
+ * Las ventas se identifican con un UUID, que es lo correcto para la base
+ * (nunca choca, no hace falta un contador) pero imposible de leer o de dictar
+ * por telefono. Aqui se recortan los ultimos seis caracteres y se ponen en
+ * mayusculas: "VTA-3F91C2".
+ *
+ * NO es un consecutivo. El Figma ensena "Venta #047", que si lo parece; para
+ * tener eso de verdad haria falta una columna numero_de_venta en la tabla y
+ * decidir que pasa al borrar una. Mientras tanto, esto identifica sin mentir.
+ */
+fun folioDe(id: String): String {
+    val limpio = id.filter { it.isLetterOrDigit() }
+    val cola = if (limpio.length <= 6) limpio else limpio.takeLast(6)
+    return "VTA-" + cola.uppercase()
+}
+
+/**
+ * "2026-09-27 14:32", o solo la fecha si la venta es de antes de que se
+ * guardara la hora (la migracion 5->6 las dejo con la hora vacia).
+ */
+fun fechaYHora(fecha: String, hora: String): String =
+    if (hora.isBlank()) fecha else fecha + " " + hora

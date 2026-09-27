@@ -39,7 +39,7 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
         AvisoDescartado::class,
         Negocio::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -68,6 +68,14 @@ abstract class GestorDatabase : RoomDatabase() {
         //  DEFAULT 0 no es un capricho: la columna es NOT NULL, asi que SQLite
         //  necesita saber que poner en los renglones que ya estaban.
         // ============================================================
+        // Las ventas guardan la hora: en un dia con varias, la fecha sola no
+        // las distingue ni las ordena. Las que ya estaban se quedan con "".
+        private val MIGRACION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ventas ADD COLUMN hora TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         private val MIGRACION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE lotes ADD COLUMN cantidad REAL NOT NULL DEFAULT 0")
@@ -98,7 +106,7 @@ abstract class GestorDatabase : RoomDatabase() {
                     // Para cualquier otro salto sigue valiendo borrar: mientras
                     // el esquema se mueva, no vale la pena escribir migraciones
                     // de versiones que nadie tiene instaladas.
-                    .addMigrations(MIGRACION_4_5)
+                    .addMigrations(MIGRACION_4_5, MIGRACION_5_6)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instancia

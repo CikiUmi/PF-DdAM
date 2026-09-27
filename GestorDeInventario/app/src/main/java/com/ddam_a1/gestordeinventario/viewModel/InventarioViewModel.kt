@@ -350,8 +350,11 @@ class InventarioViewModel @Inject constructor(
     // ---------- VENTAS ----------
 
     /** Devuelve el resultado completo: la pantalla decide que mensaje mostrar. */
-    suspend fun registrarVenta(fecha: String, items: List<Pair<String, Int>>): ResultadoVenta =
-        repo.registrarVenta(fecha, items)
+    suspend fun registrarVenta(
+        fecha: String,
+        hora: String,
+        items: List<Pair<String, Int>>
+    ): ResultadoVenta = repo.registrarVenta(fecha, hora, items)
 
     fun cancelarVenta(ventaId: String, fecha: String) {
         viewModelScope.launch { repo.cancelarVenta(ventaId, fecha) }

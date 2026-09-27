@@ -430,7 +430,7 @@ class InventarioRepositorioLocal @Inject constructor(
     }
 
     override suspend fun registrarVenta(
-        fecha: String, items: List<Pair<String, Int>>
+        fecha: String, hora: String, items: List<Pair<String, Int>>
     ): ResultadoVenta {
         if (items.isEmpty()) return ResultadoVenta.Fallo(ErrorVenta.TICKET_VACIO)
 
@@ -504,7 +504,7 @@ class InventarioRepositorioLocal @Inject constructor(
                 total += producto.precioVenta * cantidad
             }
 
-            val venta = Venta(id = ventaId, fecha = fecha, total = total)
+            val venta = Venta(id = ventaId, fecha = fecha, hora = hora, total = total)
             venta.items = itemsVendidos
 
             // El orden importa: la venta PRIMERO. La llave foranea exige que exista

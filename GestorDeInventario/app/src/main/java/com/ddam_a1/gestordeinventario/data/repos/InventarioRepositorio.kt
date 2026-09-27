@@ -92,7 +92,11 @@ interface InventarioRepositorio {
 
     // ---------- VENTAS ----------
 
-    suspend fun registrarVenta(fecha: String, items: List<Pair<String, Int>>): ResultadoVenta
+    suspend fun registrarVenta(
+        fecha: String,
+        hora: String,
+        items: List<Pair<String, Int>>
+    ): ResultadoVenta
     suspend fun cancelarVenta(ventaId: String, fecha: String): Boolean
     suspend fun leerVenta(id: String): Venta?
 

@@ -39,6 +39,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.ListaPegada
 import com.ddam_a1.gestordeinventario.ui.components.Pastilla
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
 import com.ddam_a1.gestordeinventario.ui.dinero
@@ -415,47 +416,19 @@ private fun ListaIngredientes(receta: List<RenglonReceta>) {
         return
     }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Radios.campo))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(4.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp)
-    ) {
-        receta.forEachIndexed { i, renglon ->
-            val primero = i == 0
-            val ultimo = i == receta.size - 1
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = if (primero) 12.dp else 4.dp,
-                            topEnd = if (primero) 12.dp else 4.dp,
-                            bottomStart = if (ultimo) 12.dp else 4.dp,
-                            bottomEnd = if (ultimo) 12.dp else 4.dp
-                        )
-                    )
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                    .padding(Margenes.md)
-                    .semantics(mergeDescendants = true) { },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    renglon.nombre,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    cant(renglon.cantidadUsada) + " " + renglon.unidad +
-                        " (" + dinero(renglon.cantidadUsada * renglon.costoUnitario) + ")",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+    ListaPegada(receta.size) { i ->
+        val renglon = receta[i]
+        Text(
+            renglon.nombre,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            cant(renglon.cantidadUsada) + " " + renglon.unidad +
+                " (" + dinero(renglon.cantidadUsada * renglon.costoUnitario) + ")",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
