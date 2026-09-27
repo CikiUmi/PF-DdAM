@@ -39,14 +39,50 @@ import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.PanelLateral
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaProductoRejilla
+import com.ddam_a1.gestordeinventario.ui.diasHasta
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.anchoPantallaDe
 
 private enum class FiltroCat(val etiqueta: String) {
-    TODOS("Todos"), CON_STOCK("Con stock"), BAJO_PEDIDO("Bajo pedido")
+    TODOS("Todos"), CON_STOCK("Con stock"), BAJO_PEDIDO("Bajo pedido"), EN_RIESGO("En riesgo")
 }
+
+// ============================================================
+//  QUE ES UN PRODUCTO "EN RIESGO"
+//
+//  Dos cosas distintas que piden la misma reaccion — atenderlo hoy:
+//
+//    stock bajo   queda igual o menos de su minimo, asi que se va a acabar
+//    por caducar  su fecha mas cercana esta dentro de la ventana, o ya paso
+//
+//  La ventana es FIJA porque `Producto` no tiene un campo de dias de aviso
+//  como si lo tiene `Material`. Si algun dia hace falta afinarlo producto por
+//  producto, es una columna mas y este numero se va.
+//
+//  Un producto bajo pedido no guarda existencias, asi que nunca esta bajo de
+//  stock: se fabrica cuando alguien lo encarga.
+// ============================================================
+
+private const val DIAS_DE_RIESGO = 7
+
+private fun stockBajoDe(p: Producto): Boolean =
+    !p.esBajoPedido && p.stockMinimo > 0 && p.stockDisponible <= p.stockMinimo
+
+/**
+ * Dias que le faltan al lote mas cercano del producto, negativo si ya paso;
+ * null si el producto no caduca o si aun esta lejos de la ventana.
+ */
+private fun diasDeRiesgoDe(p: Producto): Int? {
+    val fecha = p.caducidadMasCercana
+    if (fecha.isNullOrBlank()) return null
+    val dias = diasHasta(fecha) ?: return null
+    return if (dias <= DIAS_DE_RIESGO) dias else null
+}
+
+private fun enRiesgo(p: Producto): Boolean =
+    stockBajoDe(p) || diasDeRiesgoDe(p) != null
 
 // ============================================================
 //  PANTALLA 9 - CATALOGO   (Figma 48:1385 / 48:1741 / 48:2089)
@@ -80,6 +116,7 @@ fun PantallaCatalogo(
         FiltroCat.TODOS -> encontrados
         FiltroCat.CON_STOCK -> encontrados.filter { !it.esBajoPedido }
         FiltroCat.BAJO_PEDIDO -> encontrados.filter { it.esBajoPedido }
+        FiltroCat.EN_RIESGO -> encontrados.filter { enRiesgo(it) }
     }
 
     BoxWithConstraints {
@@ -117,7 +154,7 @@ private fun CatalogoConBarra(
     ) {
         item { BarraBusqueda(texto, "Buscar producto...", onTexto) }
         item { FilaFiltrosCatalogo(filtro, onFiltro) }
-        rejillaProductos(lista, costos, columnas, onProducto)
+        rejillaProductos(lista, costos, columnas, filtro, onProducto)
     }
 }
 
@@ -168,7 +205,7 @@ private fun CatalogoConPanel(
                         verticalArrangement = Arrangement.spacedBy(Margenes.lg),
                         contentPadding = PaddingValues(bottom = 88.dp)
                     ) {
-                        rejillaProductos(lista, costos, 4, onProducto)
+                        rejillaProductos(lista, costos, 4, filtro, onProducto)
                     }
                 }
                 Box(
@@ -217,10 +254,26 @@ private fun LazyListScope.rejillaProductos(
     lista: List<Producto>,
     costos: Map<String, Double>,
     columnas: Int,
+    filtro: FiltroCat,
     onProducto: (String) -> Unit
 ) {
     if (lista.isEmpty()) {
-        item { EstadoVacio("Sin productos", "Los productos que registres aparecerán aquí") }
+        // El vacio dice por que esta vacio. "Sin productos" con el filtro
+        // "En riesgo" puesto haria pensar que no hay catalogo, cuando en
+        // realidad es una buena noticia.
+        item {
+            when (filtro) {
+                FiltroCat.TODOS -> EstadoVacio(
+                    "Sin productos", "Los productos que registre aparecerán aquí"
+                )
+                FiltroCat.EN_RIESGO -> EstadoVacio(
+                    "Nada en riesgo", "Ningún producto está por acabarse ni por caducar"
+                )
+                else -> EstadoVacio(
+                    "Sin resultados", "Ningún producto coincide con este filtro"
+                )
+            }
+        }
         return
     }
 
@@ -238,7 +291,8 @@ private fun LazyListScope.rejillaProductos(
                         venta = dinero(p.precioVenta),
                         esBajoPedido = p.esBajoPedido,
                         stock = p.stockDisponible,
-                        stockBajo = p.stockMinimo > 0 && p.stockDisponible <= p.stockMinimo,
+                        stockBajo = stockBajoDe(p),
+                        diasParaCaducar = diasDeRiesgoDe(p),
                         onClick = { onProducto(p.id) }
                     )
                 }

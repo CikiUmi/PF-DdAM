@@ -45,6 +45,8 @@ fun TarjetaProductoRejilla(
     esBajoPedido: Boolean,
     stock: Int,
     stockBajo: Boolean,
+    /** Dias que faltan para caducar, negativo si ya caduco; null si no esta en riesgo. */
+    diasParaCaducar: Int? = null,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
@@ -106,11 +108,25 @@ fun TarjetaProductoRejilla(
         // sobrante mide cero y la tarjeta se ve igual que antes.
         Spacer(Modifier.weight(1f))
 
+        // UNA sola pastilla, por orden de urgencia. Dos juntas no caben en
+        // una tarjeta de rejilla, y la primera ya dice lo que hay que hacer:
+        // sin stock no se vende, y lo que caduca hay que sacarlo antes.
         if (esBajoPedido) {
             Pastilla("Bajo pedido", cs.tertiaryContainer, cs.onTertiaryContainer, Iconos.Reloj)
         } else if (stockBajo) {
             // El rojo no viaja solo: dice el numero, que es lo que preocupa.
             Pastilla(stock.toString() + " en stock", cs.errorContainer, cs.onErrorContainer, Iconos.Alerta)
+        } else if (diasParaCaducar != null) {
+            // Dias y no la fecha completa: la pastilla cabe en unos 92dp de
+            // renglon (150 de tarjeta menos su relleno, el icono y el suyo) y
+            // "Caduca 2026-10-02" se parte en dos. La fecha exacta esta en el
+            // detalle del producto, que es donde se decide que hacer con ella.
+            val aviso = when {
+                diasParaCaducar < 0 -> "Caducado"
+                diasParaCaducar == 0 -> "Caduca hoy"
+                else -> "Caduca " + diasParaCaducar + " d"
+            }
+            Pastilla(aviso, cs.errorContainer, cs.onErrorContainer, Iconos.Calendario)
         } else {
             Pastilla(
                 stock.toString() + " en stock",
