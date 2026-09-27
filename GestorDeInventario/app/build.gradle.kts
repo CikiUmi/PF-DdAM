@@ -56,6 +56,13 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    // Revisa las caducidades una vez al dia aunque la app este cerrada.
+    // hilt-work es lo que deja inyectar el repositorio dentro del Worker;
+    // su compilador es el de androidx.hilt, distinto del de Dagger de arriba.
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

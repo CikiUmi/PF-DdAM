@@ -43,7 +43,7 @@ interface InventarioRepositorio {
     suspend fun agregarMaterial(nombre: String, unidad: String, costo: Double, cantidad: Double): Material
     suspend fun editarMaterial(id: String, nombre: String? = null, costo: Double? = null): Boolean
     suspend fun eliminarMaterial(id: String): Boolean
-    suspend fun agregarFechaCaducidad(materialId: String, fecha: String): Boolean
+    suspend fun agregarLote(materialId: String, cantidad: Double, fecha: String): Boolean
     suspend fun definirStockMinimo(materialId: String, minimo: Double): Boolean
     suspend fun definirDiasAvisoCaducidad(materialId: String, dias: Int): Boolean
 

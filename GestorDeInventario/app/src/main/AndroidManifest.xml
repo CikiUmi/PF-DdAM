@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      Desde Android 13 las notificaciones se PIDEN, no se dan. MainActivity
+      lanza la peticion al abrir; en versiones anteriores se concede sola.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".GestorDeInventarioApp"
         android:allowBackup="true"
@@ -39,6 +45,27 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/rutas_archivos" />
         </provider>
+
+        <!--
+          APAGA el arranque automatico de WorkManager.
+
+          Por omision WorkManager se inicializa solo, antes que Hilt, con una
+          fabrica de Workers que no sabe inyectar nada. Quitandolo de aqui,
+          WorkManager se inicializa cuando alguien lo pide y usa la
+          configuracion de GestorDeInventarioApp, que si trae la fabrica de
+          Hilt. Sin estas lineas, RevisorDeCaducidades falla al construirse.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
     </application>
 
 </manifest>

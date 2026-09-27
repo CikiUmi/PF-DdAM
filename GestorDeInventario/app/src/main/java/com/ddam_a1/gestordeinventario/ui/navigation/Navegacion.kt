@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.ddam_a1.gestordeinventario.notificaciones.notificarAvisos
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -283,6 +285,12 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 },
                 onProducto = { productoId -> navController.navigate(rutaDetalleProducto(productoId)) },
                 onEditar = { navController.navigate(rutaFormularioMaterial(id)) },
+                // Se sale ANTES de borrar: si no, esta pantalla se quedaria un
+                // instante con un material que ya no existe y pintaria el hueco.
+                onEliminar = {
+                    atras()
+                    inventarioVm.eliminarMaterial(id)
+                },
                 onAtras = atras
             )
         }
@@ -609,6 +617,12 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val usuarios by sesionVm.usuarios.collectAsState()
             val bitacora by inventarioVm.bitacora.collectAsState()
 
+            // El resultado de la prueba vive AQUI y no en la pantalla porque
+            // mandar la notificacion necesita el Context, que la pantalla no
+            // tiene ni deberia tener.
+            var resultadoPrueba by remember { mutableStateOf<String?>(null) }
+            val contexto = LocalContext.current
+
             PantallaConfiguracion(
                 nombreNegocio = nombreNegocio,
                 modoEquipo = modoEquipo,
@@ -616,6 +630,26 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 bitacora = bitacora.reversed(),
                 onExportar = { navController.navigate(RUTA_EXPORTAR) },
                 onUsuarios = { navController.navigate(RUTA_USUARIOS) },
+                resultadoPrueba = resultadoPrueba,
+                onProbarNotificaciones = {
+                    scope.launch {
+                        val avisos = inventarioVm.avisosQueSeNotificarian(hoy())
+                        val mandadas = notificarAvisos(contexto, avisos)
+                        // Tres respuestas distintas para tres causas distintas:
+                        // un "no pasó nada" a secas no dice si el problema es
+                        // que no hay datos o que el permiso está negado.
+                        resultadoPrueba = when {
+                            mandadas > 0 ->
+                                "Se enviaron " + mandadas + " notificaciones."
+                            avisos.isEmpty() ->
+                                "No hay lotes por caducar hoy. Registre una entrada " +
+                                    "con fecha próxima para probarlo."
+                            else ->
+                                "Hay " + avisos.size + " avisos, pero las notificaciones " +
+                                    "están desactivadas para esta app en los ajustes de Android."
+                        }
+                    }
+                },
                 onAtras = atras,
                 onSalir = {
                     sesionVm.cerrarSesion()

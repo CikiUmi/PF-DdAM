@@ -23,6 +23,9 @@ fun PantallaConfiguracion(
     bitacora: List<RegistroLog>,
     onExportar: () -> Unit,
     onUsuarios: () -> Unit,
+    /** Lo que dijo la ultima prueba. Null mientras nadie la ha pedido. */
+    resultadoPrueba: String?,
+    onProbarNotificaciones: () -> Unit,
     onAtras: () -> Unit,
     onSalir: () -> Unit
 ) {
@@ -47,6 +50,29 @@ fun PantallaConfiguracion(
                 onClick = { onUsuarios() }
             )
         }
+        // ---------- notificaciones ----------
+        //
+        // La revision de caducidades corre una vez al dia y con la app cerrada,
+        // asi que no hay forma de comprobar que funciona sin esperar. Esto la
+        // dispara al momento, con la MISMA regla que usa la revision diaria.
+        item { EncabezadoSeccion("Notificaciones") }
+        item {
+            FilaLista(
+                titulo = "Probar notificación",
+                subtitulo = "Revisa las caducidades ahora mismo",
+                onClick = { onProbarNotificaciones() }
+            )
+        }
+        if (resultadoPrueba != null) {
+            item {
+                Text(
+                    resultadoPrueba,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         item { EncabezadoSeccion("Datos") }
         item {
             FilaLista(

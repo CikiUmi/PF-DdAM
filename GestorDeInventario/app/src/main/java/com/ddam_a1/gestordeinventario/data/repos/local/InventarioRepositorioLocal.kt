@@ -66,9 +66,8 @@ class InventarioRepositorioLocal @Inject constructor(
         combine(materialDao.todos(), loteDao.todos()) { materiales, lotes ->
             materiales.map { material ->
                 material.apply {
-                    fechasCaducidad = lotes
+                    this.lotes = lotes
                         .filter { it.materialId == material.id }
-                        .map { it.caducidad }
                         .toMutableList()
                 }
             }
@@ -128,9 +127,11 @@ class InventarioRepositorioLocal @Inject constructor(
         return materialDao.sumar(materialId, cantidad) > 0
     }
 
-    override suspend fun agregarFechaCaducidad(materialId: String, fecha: String): Boolean {
-        if (fecha.isBlank()) return false
-        loteDao.agregar(LoteMaterial(materialId = materialId, caducidad = fecha.trim()))
+    override suspend fun agregarLote(materialId: String, cantidad: Double, fecha: String): Boolean {
+        if (fecha.isBlank() || cantidad <= 0.0) return false
+        loteDao.agregar(
+            LoteMaterial(materialId = materialId, caducidad = fecha.trim(), cantidad = cantidad)
+        )
         return true
     }
 
@@ -142,7 +143,7 @@ class InventarioRepositorioLocal @Inject constructor(
 
     override suspend fun leerMaterial(id: String): Material? =
         materialDao.leer(id)?.apply {
-            fechasCaducidad = loteDao.lotesDe(id).map { it.caducidad }.toMutableList()
+            lotes = loteDao.lotesDe(id).toMutableList()
         }
 
     override suspend fun buscarMaterial(texto: String): List<Material> = materialDao.buscar(texto)
@@ -294,7 +295,8 @@ class InventarioRepositorioLocal @Inject constructor(
                     avisos.add(
                         Aviso(
                             material.id, TipoAviso.CADUCIDAD,
-                            "El material '" + material.nombre + "' caduca el " + lote.caducidad
+                            sinCeroSobrante(lote.cantidad) + " " + material.unidadMedida + " de '" +
+                                material.nombre + "' caducan el " + lote.caducidad
                         )
                     )
                 }
@@ -516,3 +518,13 @@ class InventarioRepositorioLocal @Inject constructor(
     }
 }
 
+/**
+ * "20" en vez de "20.0" dentro del texto de un aviso.
+ *
+ * Es lo mismo que `cant()` de ui/Formato.kt, escrito otra vez a proposito:
+ * `data/` no importa de `ui/`. Si algun dia el formato de numeros crece
+ * (separador de miles, idiomas), lo que toca es sacarlo a un sitio comun,
+ * no invertir la dependencia.
+ */
+private fun sinCeroSobrante(v: Double): String =
+    if (v % 1.0 == 0.0) v.toInt().toString() else String.format(java.util.Locale.getDefault(), "%.2f", v)
