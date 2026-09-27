@@ -1,9 +1,9 @@
 package com.ddam_a1.gestordeinventario.di
 
 import com.ddam_a1.gestordeinventario.data.InventarioRepositorio
-import com.ddam_a1.gestordeinventario.data.InventarioRepositorioMemoria
+import com.ddam_a1.gestordeinventario.data.InventarioRepositorioLocal
 import com.ddam_a1.gestordeinventario.data.SesionRepositorio
-import com.ddam_a1.gestordeinventario.data.SesionRepositorioMemoria
+import com.ddam_a1.gestordeinventario.data.SesionRepositorioLocal
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -20,9 +20,12 @@ import javax.inject.Singleton
 //  se esta diciendo "cuando alguien pida la interfaz, dale esta clase". Hilt
 //  genera menos codigo asi. Un @Binds siempre va en una clase abstracta.
 //
-//  EL DIA QUE LLEGUE ROOM: cambias `InventarioRepositorioMemoria` por
-//  `InventarioRepositorioLocal` en la linea de abajo. Una linea. Nada mas del
-//  proyecto se entera, porque nadie mas conoce el nombre de la implementacion.
+//  YA LLEGO ROOM. Esta es la unica linea del proyecto que cambio para
+//  pasar de listas en memoria a base de datos: `Memoria` -> `Local`. Ni el
+//  ViewModel ni las 25 pantallas se enteraron.
+//
+//  Las implementaciones en memoria siguen ahi: para volver, se cambia de
+//  regreso y ya.
 //
 //  El modulo de la base de datos (los @Provides de GestorDatabase y los DAO)
 //  va aparte, en DatabaseModule.kt, cuando exista.
@@ -35,12 +38,12 @@ abstract class RepositorioModule {
     @Binds
     @Singleton
     abstract fun enlazarInventarioRepositorio(
-        implementacion: InventarioRepositorioMemoria
+        implementacion: InventarioRepositorioLocal
     ): InventarioRepositorio
 
     @Binds
     @Singleton
     abstract fun enlazarSesionRepositorio(
-        implementacion: SesionRepositorioMemoria
+        implementacion: SesionRepositorioLocal
     ): SesionRepositorio
 }

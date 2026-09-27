@@ -508,6 +508,8 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                                 ErrorVenta.CANTIDAD_INVALIDA -> "Hay una cantidad invalida."
                                 ErrorVenta.PRODUCTO_NO_EXISTE -> "Un producto del ticket ya no existe."
                                 ErrorVenta.TICKET_VACIO -> "El ticket esta vacio."
+                                ErrorVenta.VENTAS_NO_DISPONIBLES ->
+                                    "Las ventas todavia no se guardan: falta terminar VentaDao."
                             }
                         }
                     }

@@ -5,7 +5,22 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import java.util.UUID
 
 /** Motivo por el que una venta no se pudo registrar (para mostrarlo en pantalla). */
-enum class ErrorVenta { TICKET_VACIO, PRODUCTO_NO_EXISTE, CANTIDAD_INVALIDA, MATERIALES_INSUFICIENTES, STOCK_INSUFICIENTE }
+enum class ErrorVenta {
+    TICKET_VACIO,
+    PRODUCTO_NO_EXISTE,
+    CANTIDAD_INVALIDA,
+    MATERIALES_INSUFICIENTES,
+    STOCK_INSUFICIENTE,
+
+    /**
+     * TEMPORAL: la tabla de ventas todavia no existe.
+     *
+     * Se borra en cuanto terminemos `VentaDao`. Esta aqui y no como un crash
+     * para que la app siga usable: al intentar vender sale un mensaje claro en
+     * vez de tronar.
+     */
+    VENTAS_NO_DISPONIBLES
+}
 
 /** Resultado de intentar registrar una venta. */
 sealed class ResultadoVenta {

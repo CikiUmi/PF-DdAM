@@ -43,7 +43,7 @@ object CatalogoProductos {
     // RF6: Seleccionar materiales usados y su cantidad (receta) para elaborar el producto
     fun agregarIngredienteReceta(productoId: String, materialId: String, cantidadUsada: Double): Boolean {
         val producto = productos.find { it.id == productoId } ?: return false
-        producto.receta.add(IngredienteReceta(materialId, cantidadUsada))
+        producto.receta.add(IngredienteReceta(productoId = productoId, materialId = materialId, cantidadUsada = cantidadUsada))
         return true
     }
 
