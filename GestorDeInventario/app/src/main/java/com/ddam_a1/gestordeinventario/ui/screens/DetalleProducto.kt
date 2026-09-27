@@ -3,12 +3,16 @@ package com.ddam_a1.gestordeinventario.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,18 +25,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.Pastilla
-import com.ddam_a1.gestordeinventario.ui.components.TarjetaCifra
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
 import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
@@ -79,10 +87,16 @@ fun PantallaDetalleProducto(
     }
 
     BoxWithConstraints {
-        if (anchoPantallaDe(maxWidth) == AnchoPantalla.EXPANDIDA) {
+        val medida = anchoPantallaDe(maxWidth)
+        if (medida == AnchoPantalla.EXPANDIDA) {
             ProductoDosColumnas(producto, costo, receta, onEditar, onProducir, onReceta, onAtras)
         } else {
-            ProductoUnaColumna(producto, costo, receta, onEditar, onProducir, onReceta, onAtras)
+            ProductoUnaColumna(
+                producto, costo, receta, onEditar, onProducir, onReceta, onAtras,
+                // Solo en telefono se apilan: de 600 en adelante las tres
+                // caben de lado sin cortar ni el importe mas largo.
+                apiladas = medida == AnchoPantalla.COMPACTA
+            )
         }
     }
 }
@@ -97,7 +111,8 @@ private fun ProductoUnaColumna(
     onEditar: () -> Unit,
     onProducir: () -> Unit,
     onReceta: () -> Unit,
-    onAtras: () -> Unit
+    onAtras: () -> Unit,
+    apiladas: Boolean
 ) {
     Marco(barra = {
         BarraSuperior("Detalle de producto", onAtras = onAtras) {
@@ -105,7 +120,7 @@ private fun ProductoUnaColumna(
         }
     }) {
         item { EncabezadoProducto(producto) }
-        item { CifrasProducto(producto, costo, enFila = true) }
+        item { CifrasProducto(producto, costo, receta.size, apiladas) }
         item { CabeceraReceta(onReceta) }
         item { ListaIngredientes(receta) }
         item { ResumenCosto(costo) }
@@ -139,7 +154,7 @@ private fun ProductoDosColumnas(
                     verticalArrangement = Arrangement.spacedBy(Margenes.xl)
                 ) {
                     item { EncabezadoProducto(producto) }
-                    item { CifrasProducto(producto, costo, enFila = true) }
+                    item { CifrasProducto(producto, costo, receta.size, apiladas = false) }
                     item { BotonPrincipal("Registrar producción", onClick = onProducir) }
                 }
 
@@ -206,7 +221,12 @@ private fun EncabezadoProducto(producto: Producto) {
  * que dice el Figma con "$12.50 (50%)" para 25 de precio y 12.50 de costo.
  */
 @Composable
-private fun CifrasProducto(producto: Producto, costo: Double, enFila: Boolean) {
+private fun CifrasProducto(
+    producto: Producto,
+    costo: Double,
+    materiales: Int,
+    apiladas: Boolean
+) {
     val ganancia = producto.precioVenta - costo
     val margen = if (producto.precioVenta > 0.0) (ganancia / producto.precioVenta) * 100.0 else 0.0
     val color =
@@ -214,31 +234,141 @@ private fun CifrasProducto(producto: Producto, costo: Double, enFila: Boolean) {
         else MaterialTheme.colorScheme.error
 
     val cs = MaterialTheme.colorScheme
-    // Se reusa TarjetaCifra (la de Rendimiento) y no TarjetaMetrica: esta trae
-    // el par de colores desde fuera, que es lo que hace falta para pintar la
-    // ganancia en verde, y su cifra va en 20 como en el Figma.
+
+    // El porcentaje baja a la nota en vez de ir pegado al importe: asi la
+    // cifra grande es SOLO dinero y se puede comparar de un vistazo con las
+    // otras dos, que tambien son dinero.
+    val notaMargen = cant(margen) + "% margen"
+
+    // De donde sale el costo. Es el unico dato de esta pantalla que explica
+    // esa cifra; para "Precio" no hay ninguno que aporte, y una nota puesta
+    // por rellenar seria ruido.
+    val notaCosto = when (materiales) {
+        0 -> "Sin receta"
+        1 -> "1 material"
+        else -> materiales.toString() + " materiales"
+    }
+
+    // ============================================================
+    //  UN IMPORTE NO SE PUEDE CORTAR
+    //
+    //  Tres tarjetas de lado en un telefono dan unos 116 de ancho cada una.
+    //  Con precios de negocio de verdad ("$333,333.33") eso se convierte en
+    //  "$333,33...", y un dinero a medias no es un dato: es un error de
+    //  lectura esperando a pasar.
+    //
+    //  Asi que en telefono las tres se apilan como renglones, etiqueta a la
+    //  izquierda e importe a la derecha, con todo el ancho para el numero. De
+    //  600 en adelante vuelven a las tres columnas del Figma, que ahi si
+    //  caben, con dos renglones permitidos por si el importe es largo.
+    // ============================================================
+    if (apiladas) {
+        Column(verticalArrangement = Arrangement.spacedBy(Margenes.sm)) {
+            CifraEnRenglon(
+                "Precio", dinero(producto.precioVenta),
+                acento = cs.tertiary, colorValor = cs.onSurface
+            )
+            CifraEnRenglon(
+                "Costo", dinero(costo),
+                acento = cs.outlineVariant, colorValor = cs.onSurface,
+                nota = notaCosto, colorNota = cs.onSurfaceVariant
+            )
+            CifraEnRenglon(
+                "Ganancia", dinero(ganancia),
+                acento = color, colorValor = color,
+                nota = notaMargen, colorNota = color
+            )
+        }
+        return
+    }
+
+    // TarjetaMetrica y no TarjetaCifra: es la que trae la rayita de color
+    // arriba y el renglon de nota abajo. Va en su version `compacta`, con la
+    // cifra en 20 en vez de 28, porque tres de 28 no caben de lado.
+    //
+    // FilaPareja: si una nota ocupa un renglon y otra ninguno, tres tarjetas
+    // de alturas distintas leen como un grupo roto.
+    FilaPareja(separacion = Margenes.sm) {
+        val tarjeta = Modifier.weight(1f).fillMaxHeight()
+        TarjetaMetrica(
+            "Precio", dinero(producto.precioVenta), null,
+            colorAcento = cs.tertiary,
+            modifier = tarjeta,
+            compacta = true, maxLineasCifra = 2
+        )
+        TarjetaMetrica(
+            "Costo", dinero(costo), notaCosto,
+            colorAcento = cs.outlineVariant,
+            modifier = tarjeta,
+            colorNota = cs.onSurfaceVariant,
+            compacta = true, maxLineasCifra = 2
+        )
+        TarjetaMetrica(
+            "Ganancia", dinero(ganancia), notaMargen,
+            colorAcento = color,
+            modifier = tarjeta,
+            colorNota = color,
+            compacta = true, maxLineasCifra = 2
+        )
+    }
+}
+
+/**
+ * La misma tarjeta, tumbada: rayita y etiqueta a la izquierda, importe a la
+ * derecha.
+ *
+ * El importe NO lleva maxLines: si hace falta, que baje de renglon. Cortarlo
+ * seria justo lo que se esta evitando al apilarlas.
+ */
+@Composable
+private fun CifraEnRenglon(
+    etiqueta: String,
+    valor: String,
+    acento: Color,
+    colorValor: Color,
+    nota: String? = null,
+    colorNota: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
     Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Margenes.sm)
-    ) {
-        val tarjeta = Modifier
-            .weight(1f)
+        Modifier
+            .fillMaxWidth()
             .shadow(2.dp, RoundedCornerShape(Radios.campo))
-        TarjetaCifra(
-            "Precio", dinero(producto.precioVenta),
-            cs.surfaceContainerLowest, cs.onSurfaceVariant, tarjeta,
-            colorValor = cs.onSurface
-        )
-        TarjetaCifra(
-            "Costo", dinero(costo),
-            cs.surfaceContainerLowest, cs.onSurfaceVariant, tarjeta,
-            colorValor = cs.onSurface
-        )
-        TarjetaCifra(
-            "Ganancia", dinero(ganancia) + " (" + cant(margen) + "%)",
-            cs.surfaceContainerLowest, cs.onSurfaceVariant, tarjeta,
-            colorValor = color,
-            maxLineas = 2
+            .clip(RoundedCornerShape(Radios.campo))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .padding(horizontal = Margenes.lg, vertical = Margenes.md)
+            .semantics(mergeDescendants = true) { },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Margenes.xs)) {
+            Box(
+                Modifier
+                    .clearAndSetSemantics { }   // decorativo
+                    .width(32.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(acento)
+            )
+            Text(
+                etiqueta,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (nota != null) {
+                Text(
+                    nota,
+                    style = MaterialTheme.typography.bodyMedium
+                        .copy(fontWeight = FontWeight.SemiBold),
+                    color = colorNota
+                )
+            }
+        }
+        Text(
+            valor,
+            style = MaterialTheme.typography.tituloMedio,
+            color = colorValor,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }

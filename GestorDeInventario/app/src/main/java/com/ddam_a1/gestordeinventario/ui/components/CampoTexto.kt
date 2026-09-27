@@ -26,12 +26,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.ddam_a1.gestordeinventario.ui.filtrarNumero
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.Medidas
 import com.ddam_a1.gestordeinventario.ui.theme.Radios
@@ -85,6 +87,8 @@ fun CampoTexto(
     val interacciones = remember { MutableInteractionSource() }
     val enfocado by interacciones.collectIsFocusedAsState()
 
+    val numerico = soloNumeros || soloEnteros
+
     // El error manda sobre el foco: si el campo esta mal, tiene que verse mal
     // aunque el cursor este dentro.
     val colorBorde = when {
@@ -125,7 +129,10 @@ fun CampoTexto(
             Box(Modifier.weight(1f)) {
                 if (valor.isEmpty()) {
                     Text(
-                        marcador,
+                        // Un campo numerico vacio ensena un 0 gris: asi nunca
+                        // se ve en blanco, pero ese 0 no es texto que haya que
+                        // borrar, es la pista de que ahi van numeros.
+                        if (numerico && marcador.isEmpty()) "0" else marcador,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -135,7 +142,15 @@ fun CampoTexto(
                     // El filtro va aqui y no en la pantalla: si dejara pasar la
                     // letra y luego alguien la quitara al guardar, el usuario
                     // veria su letra escrita y desaparecer sin explicacion.
-                    onValueChange = { nuevo -> onCambio(filtrar(valor, nuevo, soloNumeros, soloEnteros)) },
+                    onValueChange = { nuevo ->
+                        // El filtro SOLO en los campos numericos: en uno de
+                        // texto normal se comeria todas las letras.
+                        onCambio(
+                            if (soloNumeros || soloEnteros)
+                                filtrarNumero(valor, nuevo, soloEnteros)
+                            else nuevo
+                        )
+                    },
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onSurface
@@ -155,7 +170,24 @@ fun CampoTexto(
                         else VisualTransformation.None,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     interactionSource = interacciones,
-                    modifier = Modifier.fillMaxWidth()
+                    // ============================================================
+                    //  EL CERO GUIA SE QUITA AL ENTRAR, NO AL TECLEAR
+                    //
+                    //  Filtrarlo mientras se escribe no basta: si el cursor cae
+                    //  ANTES del cero (pasa al enfocar un campo que dice "0"),
+                    //  teclear 323 deja "3230" y el cero sobra al final.
+                    //
+                    //  Asi que el cero desaparece en cuanto se toca el campo.
+                    //  Si se sale sin escribir nada vuelve, y el campo nunca
+                    //  se queda sin valor.
+                    // ============================================================
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { foco ->
+                            if (!numerico) return@onFocusChanged
+                            if (foco.isFocused && valor == "0") onCambio("")
+                            else if (!foco.isFocused && valor.isBlank()) onCambio("0")
+                        }
                 )
             }
 
@@ -196,38 +228,4 @@ fun CampoTexto(
             )
         }
     }
-}
-
-// ============================================================
-//  EL FILTRO DE LO QUE SE PUEDE ESCRIBIR
-//
-//  Devuelve lo nuevo si es valido, y lo ANTERIOR si no. Rechazar asi (en vez
-//  de borrar el caracter malo) hace que la tecla simplemente no haga nada,
-//  que es lo que el usuario espera de un campo numerico.
-//
-//  El cero guia: los campos numericos arrancan en "0" para que se vea que van
-//  numeros. Si se dejara tal cual, teclear 5 daria "05". Por eso, cuando el
-//  valor es exactamente "0" y llega un digito, el cero se va. Pero si llega un
-//  punto se queda, porque "0.5" si es lo que se quiere.
-// ============================================================
-
-private fun filtrar(
-    actual: String,
-    nuevo: String,
-    soloNumeros: Boolean,
-    soloEnteros: Boolean
-): String {
-    if (!soloNumeros && !soloEnteros) return nuevo
-
-    val n = nuevo.replace(',', '.')
-    if (n.isEmpty()) return n
-
-    val valido = if (soloEnteros) n.all { it.isDigit() }
-    else n.all { it.isDigit() || it == '.' } && n.count { it == '.' } <= 1
-    if (!valido) return actual
-
-    // Se quita el cero de la izquierda: "05" -> "5", pero "0.5" se respeta.
-    if (actual == "0" && n.length == 2 && n[0] == '0' && n[1].isDigit()) return n.substring(1)
-
-    return n
 }

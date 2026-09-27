@@ -439,6 +439,16 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 onGuardar = { ingredientes, precio ->
                     inventarioVm.guardarReceta(productoId, ingredientes)
                     inventarioVm.asignarPrecioVenta(productoId, precio)
+                    // Al TERMINAR un alta se vuelve al catalogo, no a la
+                    // pantalla anterior: la anterior es el formulario del paso
+                    // 1, que ya cumplio, y volver ahi parece que no se guardo.
+                    // Al editar la receta de un producto que ya existia, se
+                    // vuelve de donde se vino (su detalle).
+                    if (esNuevo) {
+                        navController.popBackStack(RUTA_CATALOGO, inclusive = false)
+                    } else {
+                        navController.popBackStack()
+                    }
                 },
                 onDescartar = {
                     // El producto ya se habia creado para poder colgarle la

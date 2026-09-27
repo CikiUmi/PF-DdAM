@@ -29,6 +29,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BarraProgreso
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.GraficaBarras
 import com.ddam_a1.gestordeinventario.ui.components.GraficaDona
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
@@ -140,10 +141,7 @@ private fun RendimientoUnaColumna(
         } else {
             item { Dona(ingresos, ganancia, costo) }
             item {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Margenes.sm)
-                ) {
+                FilaPareja(separacion = Margenes.sm) {
                     CifrasEnFila(ganancia, costo, perdidas, etiquetasLargas = false)
                 }
             }
@@ -228,7 +226,7 @@ private fun RendimientoDosColumnas(
                     SelectorPeriodo(periodo, onPeriodo)
                     GraficaBarras("Ventas por día", ventasPorDia)
                     Dona(ingresos, ganancia, costo, conImportes = true)
-                    Row(horizontalArrangement = Arrangement.spacedBy(Margenes.lg)) {
+                    FilaPareja(separacion = Margenes.lg) {
                         CifrasEnFila(ganancia, costo, perdidas, etiquetasLargas = true)
                     }
                 }
@@ -303,7 +301,12 @@ private fun RowScope.CifrasEnFila(
     costo: Double,
     perdidas: Double,
     etiquetasLargas: Boolean
-) = CifrasContenido(ganancia, costo, perdidas, etiquetasLargas, Modifier.weight(1f))
+) = CifrasContenido(
+    ganancia, costo, perdidas, etiquetasLargas,
+    // fillMaxHeight dentro de FilaPareja: "Pérdidas registradas" ocupa dos
+    // renglones y las otras una, y las tres deben acabar iguales.
+    Modifier.weight(1f).fillMaxHeight()
+)
 
 /** Las tres cifras una debajo de otra, cada una a todo el ancho. */
 @Composable

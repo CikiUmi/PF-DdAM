@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -33,6 +34,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.PanelLateral
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaProductoRejilla
@@ -223,16 +225,16 @@ private fun LazyListScope.rejillaProductos(
 
     val renglones = lista.chunked(columnas)
     items(renglones.size) { i ->
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Margenes.md)
-        ) {
+        // Los nombres largos ocupan dos renglones y los cortos uno: sin esto,
+        // las tarjetas de un mismo renglon acabarian a alturas distintas.
+        FilaPareja {
             renglones[i].forEach { p ->
-                Box(Modifier.weight(1f)) {
+                Box(Modifier.weight(1f).fillMaxHeight()) {
                     TarjetaProductoRejilla(
+                        modifier = Modifier.fillMaxHeight(),
                         nombre = p.nombre,
-                        detalle = "Costo: " + dinero(costos[p.id] ?: p.costoProduccion) +
-                            " · Venta: " + dinero(p.precioVenta),
+                        costo = dinero(costos[p.id] ?: p.costoProduccion),
+                        venta = dinero(p.precioVenta),
                         esBajoPedido = p.esBajoPedido,
                         stock = p.stockDisponible,
                         stockBajo = p.stockMinimo > 0 && p.stockDisponible <= p.stockMinimo,

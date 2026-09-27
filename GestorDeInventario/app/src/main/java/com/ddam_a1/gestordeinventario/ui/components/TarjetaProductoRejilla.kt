@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +38,10 @@ import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 @Composable
 fun TarjetaProductoRejilla(
     nombre: String,
-    detalle: String,
+    /** Solo el importe, ya formateado. La etiqueta "Costo:" la pone el diseno. */
+    costo: String,
+    /** Idem para "Venta:". */
+    venta: String,
     esBajoPedido: Boolean,
     stock: Int,
     stockBajo: Boolean,
@@ -55,26 +59,52 @@ fun TarjetaProductoRejilla(
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(Margenes.md)
             .semantics(mergeDescendants = true) { },
+        // Cuatro piezas separadas por 10, como el Figma 97:4999: imagen,
+        // textos, HUECO FLEXIBLE y pastilla.
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         HuecoImagen()
 
-        Column(verticalArrangement = Arrangement.spacedBy(Margenes.xs)) {
+        Text(
+            nombre,
+            style = MaterialTheme.typography.tituloMedio,
+            color = cs.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        // Costo y venta van en su propia columna SIN separacion: son la misma
+        // idea (lo que cuesta y lo que deja) y pegados se leen como un bloque.
+        // El hueco que los separa del nombre es el de la tarjeta, el mismo que
+        // hay entre la imagen y el texto, asi que la tarjeta entera lleva un
+        // solo ritmo en vez de dos.
+        //
+        // Dos renglones y no uno con " · " en medio (Figma 97:5003 y 97:5014):
+        // juntos, en una tarjeta estrecha, el corte de linea caia donde queria
+        // y dejaba "Venta:" separado de su importe.
+        Column {
             Text(
-                nombre,
-                style = MaterialTheme.typography.tituloMedio,
-                color = cs.onSurface,
-                maxLines = 2,
+                "Costo: " + costo,
+                style = MaterialTheme.typography.bodyLarge,
+                color = cs.onSurfaceVariant,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                detalle,
+                "Venta: " + venta,
                 style = MaterialTheme.typography.bodyLarge,
                 color = cs.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        // El hueco que sobra cuando la tarjeta se estira para igualar a su
+        // vecina se va AQUI, entre el texto y la pastilla. Dos cosas a la vez:
+        // las pastillas de un renglon quedan todas abajo y a la misma altura,
+        // y el espacio deja de ser relleno y pasa a separar dos grupos. Sin
+        // sobrante mide cero y la tarjeta se ve igual que antes.
+        Spacer(Modifier.weight(1f))
 
         if (esBajoPedido) {
             Pastilla("Bajo pedido", cs.tertiaryContainer, cs.onTertiaryContainer, Iconos.Reloj)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -67,6 +68,12 @@ fun AccionRapida(
                 modifier = Modifier.size(Medidas.icono)
             )
         }
+
+        // Si la tarjeta se estiro para igualar a su vecina, el hueco se va
+        // entre el icono y la etiqueta: los iconos quedan arriba alineados
+        // entre si y las etiquetas abajo, aunque una ocupe dos renglones.
+        Spacer(Modifier.weight(1f))
+
         Text(
             etiqueta,
             style = MaterialTheme.typography.tituloMedio,

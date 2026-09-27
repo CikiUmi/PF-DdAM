@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -41,6 +42,7 @@ import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.PanelLateral
 import com.ddam_a1.gestordeinventario.ui.dinero
@@ -137,12 +139,13 @@ private fun InventarioLista(
             // traer otra dependencia por una pantalla.
             val parejas = lista.chunked(2)
             items(parejas.size) { i ->
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
-                ) {
+                // Una tarjeta con aviso de stock bajo es mas alta que una sin
+                // el: FilaPareja las deja todas al alto de la mayor.
+                FilaPareja(separacion = Margenes.lg) {
                     parejas[i].forEach { m ->
-                        Box(Modifier.weight(1f)) { MaterialTarjeta(m, esStockBajo, onMaterial) }
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            MaterialTarjeta(m, esStockBajo, onMaterial)
+                        }
                     }
                     // Relleno cuando el ultimo renglon trae uno solo: sin esto
                     // esa tarjeta se estiraria al doble de ancho.
@@ -244,6 +247,7 @@ private fun MaterialTarjeta(
 ) {
     val bajo = esStockBajo(m)
     FilaLista(
+        modifier = Modifier.fillMaxHeight(),
         titulo = m.nombre,
         subtitulo = dinero(m.costoUnitario) + " / " + m.unidadMedida,
         valor = cant(m.cantidadDisponible) + " " + m.unidadMedida,

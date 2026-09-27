@@ -3,7 +3,7 @@ package com.ddam_a1.gestordeinventario.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -16,6 +16,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
@@ -57,18 +58,20 @@ fun PantallaHistorialVentas(
             }
         }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // "Ingresos" trae nota debajo y "Ganancia" no: sin FilaPareja
+            // una acaba mas alta que la otra.
+            FilaPareja(separacion = 12.dp) {
                 TarjetaMetrica(
                     "Ingresos", dinero(ingresos),
                     ventas.count { !it.cancelada }.toString() + " ventas",
                     colorAcento = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     colorNota = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TarjetaMetrica(
                     "Ganancia", dinero(ganancias), null,
                     colorAcento = MaterialTheme.coloresExtra.correct.color,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
         }

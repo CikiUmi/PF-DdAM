@@ -70,3 +70,40 @@ fun <T> ventasPorDiaDeLaSemana(
     }
     return dias.mapIndexed { i, d -> d to acumulado[i] }
 }
+
+// ============================================================
+//  EL FILTRO DE LOS CAMPOS NUMERICOS
+//
+//  Vive aqui y no dentro de CampoTexto porque hay dos clases de campo que
+//  aceptan numeros: el CampoTexto de siempre y el campito corto de la receta,
+//  que va dentro de un renglon y no puede usarlo. Antes cada uno filtraba a su
+//  manera y solo uno quitaba el cero de la izquierda; por eso en la receta
+//  quedaba un "3230" con el cero sobrante al final.
+//
+//  Devuelve el valor ANTERIOR cuando la tecla no vale. Es a proposito: si se
+//  dejara pasar la letra y luego alguien la quitara al guardar, el usuario
+//  veria su letra escrita y desaparecer sin explicacion.
+// ============================================================
+
+fun filtrarNumero(actual: String, nuevo: String, soloEnteros: Boolean = false): String {
+    // La coma del teclado numerico se acepta como punto: en un teclado en
+    // espanol la coma es el separador decimal y nadie busca el punto.
+    val n = nuevo.replace(',', '.')
+    if (n.isEmpty()) return n
+
+    val valido =
+        if (soloEnteros) n.all { it.isDigit() }
+        else n.all { it.isDigit() || it == '.' } && n.count { it == '.' } <= 1
+    if (!valido) return actual
+
+    // El cero guia se va en cuanto se escribe encima: los campos arrancan en
+    // "0" para ensenar que ahi va un numero, no para que el numero empiece
+    // por cero. "0222" -> "222", "007" -> "7", pero "0.5" se respeta entero
+    // y "000" vuelve a ser "0" en vez de quedarse vacio.
+    val sinCeros = n.trimStart('0')
+    return when {
+        sinCeros.isEmpty() -> "0"
+        sinCeros.startsWith('.') -> "0" + sinCeros
+        else -> sinCeros
+    }
+}

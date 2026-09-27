@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.Radios
+import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
 // ============================================================
@@ -48,6 +50,20 @@ fun TarjetaMetrica(
     modifier: Modifier = Modifier,
     /** Por omision el verde de `correct`: la nota suele ser una buena noticia. */
     colorNota: Color = MaterialTheme.coloresExtra.correct.color,
+    /**
+     * Cifra en 20 en vez de 28.
+     *
+     * Tres de estas caben de lado en una tableta, pero no con la cifra de 28:
+     * un importe de negocio de verdad no entra. Es la MISMA tarjeta, solo con
+     * el numero a la medida del hueco.
+     */
+    compacta: Boolean = false,
+    /**
+     * Renglones que puede ocupar la cifra. Uno por omision, que es lo que
+     * quiere una fila de metricas; dos cuando el importe puede ser largo y
+     * cortarlo cambiaria lo que dice.
+     */
+    maxLineasCifra: Int = 1,
     onClick: (() -> Unit)? = null
 ) {
     Column(
@@ -74,11 +90,18 @@ fun TarjetaMetrica(
         )
         Text(
             valor,
-            style = MaterialTheme.typography.headlineMedium,   // Lora SemiBold 28
+            style =
+                if (compacta) MaterialTheme.typography.tituloMedio        // Lora 20
+                else MaterialTheme.typography.headlineMedium,             // Lora 28
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            maxLines = maxLineasCifra,
             overflow = TextOverflow.Ellipsis
         )
+        // Si la tarjeta se estiro para igualar a su vecina, el hueco se va
+        // entre la cifra y su nota: la nota queda abajo y las cifras de todas
+        // las tarjetas del renglon siguen alineadas entre si.
+        Spacer(Modifier.weight(1f))
+
         if (nota != null) {
             Text(
                 nota,

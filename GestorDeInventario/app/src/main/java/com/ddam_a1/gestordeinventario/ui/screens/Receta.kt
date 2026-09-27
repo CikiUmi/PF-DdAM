@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -46,8 +48,10 @@ import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
 import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.filtrarNumero
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
 import com.ddam_a1.gestordeinventario.ui.theme.Anchos
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
@@ -140,12 +144,12 @@ fun PantallaReceta(
                             // En 700 de ancho caben dos casillas por renglon
                             // (Figma 48:2342) y la lista deja de ser una tira.
                             materiales.chunked(2).forEach { pareja ->
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(Margenes.md)
-                                ) {
+                                // Un material marcado trae campo de cantidad y
+                                // otro sin marcar no: sin FilaPareja las dos
+                                // casillas del renglon quedan desiguales.
+                                FilaPareja {
                                     pareja.forEach { m ->
-                                        Box(Modifier.weight(1f)) {
+                                        Box(Modifier.weight(1f).fillMaxHeight()) {
                                             CasillaMaterial(m, marcados, cantidades)
                                         }
                                     }
@@ -167,8 +171,10 @@ fun PantallaReceta(
                             "Guardar receta",
                             habilitado = ingredientes.isNotEmpty()
                         ) {
+                            // No se llama a onAtras: a donde ir despues de
+                            // guardar depende de si esto fue un alta o una
+                            // edicion, y eso lo sabe el NavHost, no la pantalla.
                             onGuardar(ingredientes, precio.toDoubleOrNull() ?: 0.0)
-                            onAtras()
                         }
                     }
                 }
@@ -216,6 +222,7 @@ private fun CasillaMaterial(
     Row(
         Modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .clip(RoundedCornerShape(Radios.campo))
             .background(if (activo) cs.primaryContainer else cs.surfaceContainer)
             .padding(Margenes.md),
@@ -293,8 +300,9 @@ private fun Cuadrito(activo: Boolean) {
  * El campito de la derecha: blanco, bajito y con la unidad pegada.
  *
  * No es CampoTexto porque ese trae etiqueta arriba y 48 de alto; aqui cabe
- * dentro del renglon. El filtro de numeros si se repite, y es la unica copia
- * que vale la pena: son tres lineas y evitan partir CampoTexto en dos.
+ * dentro del renglon. Pero filtra con la MISMA funcion, que vive en
+ * ui/Formato.kt: antes tenia su propia copia sin el cero guia, y por eso
+ * escribir sobre el 0 sembrado dejaba un "3230" con el cero de sobra.
  */
 @Composable
 private fun CampoCantidad(
@@ -305,11 +313,7 @@ private fun CampoCantidad(
 ) {
     BasicTextField(
         value = valor,
-        onValueChange = { nuevo ->
-            val limpio = nuevo.replace(',', '.')
-            val valido = limpio.all { it.isDigit() || it == '.' } && limpio.count { it == '.' } <= 1
-            if (valido) onCambio(limpio)
-        },
+        onValueChange = { nuevo -> onCambio(filtrarNumero(valor, nuevo)) },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(
             color = MaterialTheme.colorScheme.onSurface,
@@ -318,7 +322,14 @@ private fun CampoCantidad(
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        modifier = Modifier.width(96.dp),
+        // Misma regla que CampoTexto: el 0 sembrado se va al entrar al campo y
+        // vuelve si se deja vacio. El comentario largo esta alla.
+        modifier = Modifier
+            .width(96.dp)
+            .onFocusChanged { foco ->
+                if (foco.isFocused && valor == "0") onCambio("")
+                else if (!foco.isFocused && valor.isBlank()) onCambio("0")
+            },
         decorationBox = { campo ->
             Row(
                 Modifier

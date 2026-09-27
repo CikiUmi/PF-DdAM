@@ -1,7 +1,7 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +19,7 @@ import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaVenta
+import com.ddam_a1.gestordeinventario.ui.components.FilaPareja
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaResumen
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
@@ -94,32 +95,26 @@ fun PantallaInicio(
         }
 
         item {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Margenes.md)
-            ) {
+            FilaPareja {
                 AccionRapida(
                     Iconos.Carrito, "Registrar venta",
-                    modifier = Modifier.weight(1f), onClick = onNuevaVenta
+                    modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onNuevaVenta
                 )
                 AccionRapida(
                     Iconos.Tendencia, "Rendimiento",
-                    modifier = Modifier.weight(1f), onClick = onRendimiento
+                    modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onRendimiento
                 )
             }
         }
 
         item {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Margenes.md)
-            ) {
+            FilaPareja {
                 TarjetaResumen(
                     etiqueta = "Materiales",
                     valor = "$totalMateriales ítems",
                     nota = if (materialesBajos > 0) "$materialesBajos con stock bajo"
                     else "Todos con stock",
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     notaEsAlerta = materialesBajos > 0,
                     onClick = onInventario
                 )
@@ -127,7 +122,7 @@ fun PantallaInicio(
                     etiqueta = "Productos",
                     valor = "$totalProductos ítems",
                     nota = "Todos activos",
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     onClick = onCatalogo
                 )
             }

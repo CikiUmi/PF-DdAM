@@ -50,10 +50,12 @@ fun FilaLista(
     colorPunto: Color? = null,
     /** Aviso corto en rojo junto al subtitulo, p. ej. "Stock bajo". */
     alerta: String? = null,
+    /** Va antes de onClick para no romper la lambda final de quien ya la usa. */
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 75.dp)
             .clip(RoundedCornerShape(Radios.campo))
