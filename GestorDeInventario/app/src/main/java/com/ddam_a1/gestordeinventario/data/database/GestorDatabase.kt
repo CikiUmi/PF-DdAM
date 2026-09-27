@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import com.ddam_a1.gestordeinventario.data.dao.AvisoDescartadoDao
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
+import com.ddam_a1.gestordeinventario.data.dao.NegocioDao
 import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
 import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
 import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
@@ -18,6 +19,7 @@ import com.ddam_a1.gestordeinventario.modelClasses.IngredienteReceta
 import com.ddam_a1.gestordeinventario.modelClasses.ItemVendido
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
 import com.ddam_a1.gestordeinventario.modelClasses.Material
+import com.ddam_a1.gestordeinventario.modelClasses.Negocio
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
@@ -32,9 +34,10 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
         Usuario::class,
         RegistroLog::class,
         Venta::class, ItemVendido::class,
-        AvisoDescartado::class
+        AvisoDescartado::class,
+        Negocio::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -49,6 +52,7 @@ abstract class GestorDatabase : RoomDatabase() {
 
     abstract fun ventaDao(): VentaDao
     abstract fun avisoDescartadoDao(): AvisoDescartadoDao
+    abstract fun negocioDao(): NegocioDao
 
     companion object {
 

@@ -1,5 +1,6 @@
 package com.ddam_a1.gestordeinventario.data.repos
 
+import com.ddam_a1.gestordeinventario.modelClasses.Negocio
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import kotlinx.coroutines.flow.Flow
@@ -21,11 +22,29 @@ interface SesionRepositorio {
      */
     suspend fun existeUsuario(nombreUsuario: String): Boolean
 
-    suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario
+    /**
+     * Crea al administrador Y deja escrito el negocio, en una sola operacion.
+     *
+     * Van juntos porque son el mismo momento: el alta inicial. Si se
+     * partieran en dos llamadas, una podria salir bien y la otra no, y
+     * quedaria un administrador sin negocio o al reves.
+     */
+    suspend fun crearUsuarioAdministrador(
+        nombreUsuario: String,
+        contrasena: String,
+        nombreNegocio: String
+    ): Usuario
     suspend fun crearUsuario(quienCrea: Usuario, nombreUsuario: String, contrasena: String, rol: Rol): Usuario?
 
     /** Devuelve el usuario si la contrasena es correcta, o null si no. */
     suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario?
+
+    // ---------- NEGOCIO ----------
+
+    /** Null mientras no se ha completado el alta inicial. */
+    fun negocioStream(): Flow<Negocio?>
+
+    suspend fun definirNombreNegocio(nombre: String)
 
     suspend fun elegirModo(equipo: Boolean)
     suspend fun esModoEquipo(): Boolean

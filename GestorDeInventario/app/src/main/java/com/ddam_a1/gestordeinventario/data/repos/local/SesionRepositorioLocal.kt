@@ -1,9 +1,13 @@
 package com.ddam_a1.gestordeinventario.data.repos.local
 
+import androidx.room.withTransaction
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
+import com.ddam_a1.gestordeinventario.data.dao.NegocioDao
+import com.ddam_a1.gestordeinventario.data.database.GestorDatabase
 import com.ddam_a1.gestordeinventario.data.dao.UsuarioDao
 import com.ddam_a1.gestordeinventario.data.services.hashContrasena
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
+import com.ddam_a1.gestordeinventario.modelClasses.Negocio
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
@@ -19,16 +23,19 @@ import javax.inject.Singleton
  * refrescar ningun `MutableStateFlow` a mano. El Flow del DAO lo emite Room
  * sola cuando la tabla cambia — ese era el punto de toda la costura.
  *
- * `modoEquipo` sigue en memoria a proposito: es una preferencia de la app, no
- * un dato del negocio. Su casa de verdad seria DataStore, no una tabla.
+ * `modoEquipo` ya NO vive en memoria. Estaba como un `var` suelto, y eso
+ * significaba que elegir "mi equipo" en el alta se olvidaba al cerrar la app:
+ * al volver a abrirla estabas otra vez en modo individual. Ahora vive en la
+ * tabla `negocio`, junto al nombre, porque son lo mismo: la configuracion que
+ * se decide una vez al arrancar.
  */
 @Singleton
 class SesionRepositorioLocal @Inject constructor(
     private val usuarioDao: UsuarioDao,
-    private val bitacoraDao: BitacoraDao
+    private val bitacoraDao: BitacoraDao,
+    private val negocioDao: NegocioDao,
+    private val db: GestorDatabase
 ) : SesionRepositorio {
-
-    private var modoEquipo: Boolean = false
 
     override fun usuariosStream(): Flow<List<Usuario>> = usuarioDao.todos()
 
@@ -37,14 +44,25 @@ class SesionRepositorioLocal @Inject constructor(
     override suspend fun existeUsuario(nombreUsuario: String): Boolean =
         usuarioDao.cuantosConNombre(nombreUsuario.trim()) > 0
 
-    override suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario {
+    override suspend fun crearUsuarioAdministrador(
+        nombreUsuario: String,
+        contrasena: String,
+        nombreNegocio: String
+    ): Usuario {
         val admin = Usuario(
             id = UUID.randomUUID().toString(),
             nombreUsuario = nombreUsuario.trim(),
             contrasenaHash = hashContrasena(contrasena),
             rol = Rol.ADMINISTRADOR
         )
-        usuarioDao.agregar(admin)
+        // Las dos escrituras juntas: o hay administrador Y negocio, o no hay
+        // nada. Sin esto se podria crear al admin y perder el nombre.
+        db.withTransaction {
+            usuarioDao.agregar(admin)
+            negocioDao.guardar(
+                (negocioDao.leer() ?: Negocio()).copy(nombre = nombreNegocio.trim())
+            )
+        }
         return admin
     }
 
@@ -69,9 +87,22 @@ class SesionRepositorioLocal @Inject constructor(
     override suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario? =
         usuarioDao.autenticar(nombreUsuario.trim(), hashContrasena(contrasena))
 
-    override suspend fun elegirModo(equipo: Boolean) { modoEquipo = equipo }
+    // ---------- NEGOCIO ----------
 
-    override suspend fun esModoEquipo(): Boolean = modoEquipo
+    override fun negocioStream(): Flow<Negocio?> = negocioDao.observar()
+
+    override suspend fun definirNombreNegocio(nombre: String) {
+        // `?: Negocio()` porque la fila puede no existir todavia. Con `copy`
+        // se cambia un campo sin pisar el otro: escribir el nombre no debe
+        // borrar el modo que ya estaba elegido.
+        negocioDao.guardar((negocioDao.leer() ?: Negocio()).copy(nombre = nombre.trim()))
+    }
+
+    override suspend fun elegirModo(equipo: Boolean) {
+        negocioDao.guardar((negocioDao.leer() ?: Negocio()).copy(modoEquipo = equipo))
+    }
+
+    override suspend fun esModoEquipo(): Boolean = negocioDao.leer()?.modoEquipo ?: false
 
     override suspend fun registrarLog(fecha: String, tipo: String, descripcion: String) {
         bitacoraDao.agregar(

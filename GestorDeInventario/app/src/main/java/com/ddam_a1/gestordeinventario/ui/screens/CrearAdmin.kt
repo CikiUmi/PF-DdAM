@@ -1,50 +1,68 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.CampoTexto
+import com.ddam_a1.gestordeinventario.ui.components.TituloPantalla
+import com.ddam_a1.gestordeinventario.ui.theme.Anchos
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 
-/** Pantalla 2 - Crear cuenta de administrador (RF27, primer uso). */
+/**
+ * Pantalla 2 - Crear cuenta de administrador (RF27, primer uso).
+ * Figma 38:744 / 38:878 / 38:992.
+ */
 @Composable
-fun PantallaCrearAdmin(onCrear: (usuario: String, clave: String) -> Unit) {
+fun PantallaCrearAdmin(
+    onCrear: (usuario: String, clave: String, negocio: String) -> Unit,
+    onAtras: (() -> Unit)? = null
+) {
     var negocio by remember { mutableStateOf("") }
     var usuario by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var clave2 by remember { mutableStateOf("") }
-    val valido = usuario.isNotBlank() && clave.length >= 4 && clave == clave2
 
-    Lienzo {
-        Text("Paso 1 de 2", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(6.dp))
-        Text("Crea la cuenta de administrador", style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(6.dp))
-        Text("Tendra todos los permisos y sera la unica que pueda crear a los demas usuarios.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val clavesDistintas = clave2.isNotEmpty() && clave != clave2
+    val valido = usuario.isNotBlank() && clave.length >= 8 && clave == clave2
 
-        Spacer(Modifier.height(24.dp))
-        // TODO: el nombre del negocio todavia no se guarda en ningun lado.
-        CampoTexto(negocio, "Nombre del negocio", { negocio = it })
-        Spacer(Modifier.height(12.dp))
-        CampoTexto(usuario, "Usuario", { usuario = it })
-        Spacer(Modifier.height(12.dp))
-        CampoTexto(clave, "Contrasena", { clave = it })
-        Spacer(Modifier.height(12.dp))
-        CampoTexto(clave2, "Confirmar contrasena", { clave2 = it })
+    Lienzo(
+        anchoTarjeta = Anchos.tarjetaFormulario,
+        barra = { BarraSuperior("Nuevo Administrador", onAtras = onAtras) },
+        pie = {
+            BotonPrincipal("Continuar", habilitado = valido) {
+                onCrear(usuario.trim(), clave, negocio.trim())
+            }
+        }
+    ) {
+        TituloPantalla("Configura tu cuenta", "Configuración inicial · paso 1 de 2")
 
-        Spacer(Modifier.height(24.dp))
-        BotonPrincipal("Continuar", habilitado = valido) { onCrear(usuario.trim(), clave) }
+        Column(verticalArrangement = Arrangement.spacedBy(Margenes.lg)) {
+            // Se guarda en la tabla `negocio`, en la misma transaccion que el
+            // administrador (SesionRepositorioLocal.crearUsuarioAdministrador).
+            CampoTexto(negocio, "Nombre del negocio", { negocio = it },
+                marcador = "Ej. Mi Tienda S.A.C.")
+
+            CampoTexto(usuario, "Usuario", { usuario = it },
+                marcador = "Ej. admin_tienda")
+
+            CampoTexto(clave, "Contrasena", { clave = it },
+                esContrasena = true,
+                marcador = "Mínimo 8 caracteres",
+                // Solo se queja cuando ya escribiste algo: regañar por un campo
+                // vacio que acabas de tocar es ruido.
+                error = if (clave.isNotEmpty() && clave.length < 8)
+                    "La contrasena necesita al menos 8 caracteres" else null)
+
+            CampoTexto(clave2, "Confirmar contrasena", { clave2 = it },
+                esContrasena = true,
+                marcador = "Repite la contraseña",
+                error = if (clavesDistintas) "Las contrasenas no coinciden" else null)
+        }
     }
 }

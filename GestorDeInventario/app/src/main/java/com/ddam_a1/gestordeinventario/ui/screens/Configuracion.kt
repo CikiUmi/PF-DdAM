@@ -1,15 +1,11 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.components.BotonSecundario
+import com.ddam_a1.gestordeinventario.ui.components.BotonDestructivo
 import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
 
@@ -21,6 +17,7 @@ import com.ddam_a1.gestordeinventario.ui.components.FilaLista
  */
 @Composable
 fun PantallaConfiguracion(
+    nombreNegocio: String,
     modoEquipo: Boolean,
     totalUsuarios: Int,
     bitacora: List<RegistroLog>,
@@ -29,7 +26,18 @@ fun PantallaConfiguracion(
     onAtras: () -> Unit,
     onSalir: () -> Unit
 ) {
-    Marco(barra = { BarraSuperior("Configuracion", onAtras = onAtras) }) {
+    Marco(
+        barra = {
+            BarraSuperior(
+                "Configuracion",
+                // Un dato guardado que no se ve en ningun lado es casi tan
+                // malo como uno perdido. Aqui es donde se comprueba que si
+                // quedo escrito.
+                subtitulo = nombreNegocio.ifBlank { null },
+                onAtras = onAtras
+            )
+        }
+    ) {
         item { EncabezadoSeccion("Negocio") }
         item {
             FilaLista(
@@ -55,7 +63,7 @@ fun PantallaConfiguracion(
         // haber desaparecido.
         item { EncabezadoSeccion("Sesion") }
         item {
-            BotonSecundario("Cerrar sesion", color = MaterialTheme.colorScheme.error) { onSalir() }
+            BotonDestructivo("Cerrar sesion") { onSalir() }
         }
 
         item { EncabezadoSeccion("Historial de cambios - " + bitacora.size) }

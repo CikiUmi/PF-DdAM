@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
+import com.ddam_a1.gestordeinventario.modelClasses.Negocio
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,8 +54,24 @@ class SesionViewModel @Inject constructor(
         .map { it.isEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    private val _modoEquipo = MutableStateFlow(false)
-    val modoEquipo: StateFlow<Boolean> = _modoEquipo.asStateFlow()
+    /** El negocio configurado. Null mientras no se ha hecho el alta inicial. */
+    val negocio: StateFlow<Negocio?> = repo.negocioStream()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** Nombre listo para pintar, sin que la pantalla tenga que ver si es null. */
+    val nombreNegocio: StateFlow<String> = repo.negocioStream()
+        .map { it?.nombre.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    /**
+     * Sale de la base, no de una variable de aqui.
+     *
+     * Antes era un MutableStateFlow local: al cerrar la app se olvidaba y
+     * volvias a modo individual sin haberlo pedido.
+     */
+    val modoEquipo: StateFlow<Boolean> = repo.negocioStream()
+        .map { it?.modoEquipo ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /** Devuelve el usuario si entro, o null si la contrasena esta mal. */
     suspend fun iniciarSesion(nombreUsuario: String, contrasena: String): Usuario? {
@@ -65,10 +82,14 @@ class SesionViewModel @Inject constructor(
     }
 
     /** El primer usuario de la app siempre es administrador. */
-    suspend fun crearUsuarioAdministrador(nombreUsuario: String, contrasena: String): Usuario? {
+    suspend fun crearUsuarioAdministrador(
+        nombreUsuario: String,
+        contrasena: String,
+        nombreNegocio: String
+    ): Usuario? {
         if (nombreUsuario.isBlank() || contrasena.isBlank()) return null
         if (repo.existeUsuario(nombreUsuario)) return null
-        val admin = repo.crearUsuarioAdministrador(nombreUsuario.trim(), contrasena)
+        val admin = repo.crearUsuarioAdministrador(nombreUsuario.trim(), contrasena, nombreNegocio)
         _usuarioActual.value = admin
         return admin
     }
@@ -99,7 +120,8 @@ class SesionViewModel @Inject constructor(
     }
 
     fun elegirModo(equipo: Boolean) {
-        _modoEquipo.value = equipo
+        // Sin copia local: `modoEquipo` cuelga del Flow de la base, asi que
+        // se actualiza solo en cuanto Room emite la fila nueva.
         viewModelScope.launch { repo.elegirModo(equipo) }
     }
 

@@ -5,6 +5,7 @@ import com.ddam_a1.gestordeinventario.data.dao.AvisoDescartadoDao
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.database.GestorDatabase
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
+import com.ddam_a1.gestordeinventario.data.dao.NegocioDao
 import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
 import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
 import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
@@ -63,4 +64,7 @@ object DatabaseModule {
 
     @Provides
     fun proveerAvisoDescartadoDao(db: GestorDatabase): AvisoDescartadoDao = db.avisoDescartadoDao()
+
+    @Provides
+    fun proveerNegocioDao(db: GestorDatabase): NegocioDao = db.negocioDao()
 }
