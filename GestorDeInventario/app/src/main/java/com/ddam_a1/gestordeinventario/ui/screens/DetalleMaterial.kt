@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.ui.cant
+import com.ddam_a1.gestordeinventario.ui.diasHasta
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
@@ -93,6 +94,9 @@ fun PantallaDetalleMaterial(
     var confirmarBorrado by remember { mutableStateOf(false) }
     var entrada by remember { mutableStateOf("0") }
     var nuevaFecha by remember { mutableStateOf("") }
+    // El campo arranca en "0", que es invalido. Sin esto la hoja se abriria
+    // con el campo ya en rojo, regañando por algo que el usuario no ha hecho.
+    var cantidadTocada by remember { mutableStateOf(false) }
 
     // "Caduca" no es una pregunta suelta: es lo que se dijo al darlo de alta.
     val caduca = material.diasAvisoCaducidad > 0
@@ -102,6 +106,7 @@ fun PantallaDetalleMaterial(
     val abrirHoja = {
         entrada = "0"
         nuevaFecha = ""
+        cantidadTocada = false
         hoja = true
     }
 
@@ -122,6 +127,8 @@ fun PantallaDetalleMaterial(
 
         // ---------- PANTALLA 07b: la hoja de entrada ----------
         if (hoja) {
+            // Estrictamente MAYOR que cero: "0", "0.0" y vacio no son una
+            // entrada. "0.5" si: media unidad es media unidad.
             val cantidadValida = (entrada.toDoubleOrNull() ?: 0.0) > 0.0
             // Si el material caduca, el lote NO entra sin su fecha.
             val listo = cantidadValida && (!caduca || nuevaFecha.isNotBlank())
@@ -133,8 +140,13 @@ fun PantallaDetalleMaterial(
                 ) {
                     Box(Modifier.weight(1f)) {
                         CampoTexto(
-                            entrada, "Cantidad", { entrada = it },
-                            soloNumeros = true, sufijo = material.unidadMedida
+                            entrada, "Cantidad",
+                            { entrada = it; cantidadTocada = true },
+                            soloNumeros = true, sufijo = material.unidadMedida,
+                            // El boton apagado dice que no se puede; esto dice
+                            // por que. Solo despues de escribir, no al abrir.
+                            error = if (cantidadTocada && !cantidadValida)
+                                "Debe ser mayor que 0" else null
                         )
                     }
                     if (caduca) {
@@ -200,7 +212,7 @@ private fun DetalleUnaColumna(
         if (material.lotes.isNotEmpty()) {
             item { TituloSeccion("Lotes") }
             items(material.lotes.size) { i ->
-                FilaLote(material.lotes[i], material.unidadMedida)
+                FilaLote(material.lotes[i], material.unidadMedida, material.diasAvisoCaducidad)
             }
         }
 
@@ -243,7 +255,7 @@ private fun DetalleDosColumnas(
                     if (material.lotes.isNotEmpty()) {
                         item { TituloSeccion("Lotes disponibles") }
                         items(material.lotes.size) { i ->
-                            FilaLote(material.lotes[i], material.unidadMedida)
+                            FilaLote(material.lotes[i], material.unidadMedida, material.diasAvisoCaducidad)
                         }
                     }
                 }
@@ -367,9 +379,24 @@ private fun Pastilla(texto: String) {
     }
 }
 
-/** Un lote registrado: cuanto entro y cuando caduca (Figma 43:820). */
+/**
+ * Un lote registrado: cuanto entro y cuando caduca (Figma 43:820).
+ *
+ * Se pinta de rojo con el MISMO criterio que usan los avisos y las
+ * notificaciones: el lote entra en rojo cuando le quedan `diasAviso` dias o
+ * menos. Si en la pantalla se viera un lote tranquilo y el telefono estuviera
+ * mandando una notificacion por el, una de las dos estaria mintiendo.
+ *
+ * El rojo NO es la unica senal: el triangulo y el cambio de "Caduca" a
+ * "Caducó" dicen lo mismo sin depender del color.
+ */
 @Composable
-private fun FilaLote(lote: LoteMaterial, unidad: String) {
+private fun FilaLote(lote: LoteMaterial, unidad: String, diasAviso: Int) {
+    val dias = diasHasta(lote.caducidad)
+    val vencido = dias != null && dias < 0
+    val porCaducar = dias != null && dias >= 0 && dias <= diasAviso
+    val alarma = vencido || porCaducar
+
     Row(
         Modifier
             .fillMaxWidth()
@@ -381,14 +408,28 @@ private fun FilaLote(lote: LoteMaterial, unidad: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            cant(lote.cantidad) + " " + unidad,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
+            // Los lotes de antes de que `lotes` tuviera columna de cantidad
+            // valen 0. Decir "0 kg" seria mentir: nadie registro cero, es que
+            // en su momento no se preguntaba.
+            if (lote.cantidad > 0.0) cant(lote.cantidad) + " " + unidad
+            else "Sin cantidad",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = if (lote.cantidad > 0.0) FontWeight.Bold else FontWeight.Normal
+            ),
+            color = if (lote.cantidad > 0.0) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            "Caduca: " + lote.caducidad,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            when {
+                vencido -> "⚠ Caducó: " + lote.caducidad
+                porCaducar -> "⚠ Caduca: " + lote.caducidad
+                else -> "Caduca: " + lote.caducidad
+            },
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = if (alarma) FontWeight.SemiBold else FontWeight.Normal
+            ),
+            color = if (alarma) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

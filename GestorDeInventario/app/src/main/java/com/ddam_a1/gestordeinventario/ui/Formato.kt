@@ -24,6 +24,23 @@ fun Double.aTexto(): String =
     if (this == this.toLong().toDouble()) this.toLong().toString() else this.toString()
 
 /**
+ * Dias que faltan para una fecha "aaaa-mm-dd". Negativo si ya paso.
+ *
+ * Devuelve null cuando el texto no es una fecha, en vez de 0: un 0 se leeria
+ * como "caduca hoy" y pintaria de rojo un lote que en realidad tiene la fecha
+ * mal escrita. Quien llama decide que hacer con el null.
+ *
+ * Es el gemelo del `diasEntre` privado del repositorio. Estan separados a
+ * proposito: `data/` no importa de `ui/`.
+ */
+fun diasHasta(fecha: String, desde: String = hoy()): Int? {
+    val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val a = runCatching { formato.parse(desde) }.getOrNull() ?: return null
+    val b = runCatching { formato.parse(fecha) }.getOrNull() ?: return null
+    return ((b.time - a.time) / (1000L * 60 * 60 * 24)).toInt()
+}
+
+/**
  * Agrupa por dia de la semana para la grafica de barras.
  *
  * Devuelve SIEMPRE los siete dias, aunque alguno no tenga ventas: una grafica
