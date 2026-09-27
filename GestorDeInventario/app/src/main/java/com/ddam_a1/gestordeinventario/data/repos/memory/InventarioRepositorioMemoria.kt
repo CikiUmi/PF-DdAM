@@ -1,11 +1,6 @@
 package com.ddam_a1.gestordeinventario.data.repos.memory
 
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.data.CatalogoProductos
-import com.ddam_a1.gestordeinventario.data.InventarioMateriales
-import com.ddam_a1.gestordeinventario.data.Notificaciones
-import com.ddam_a1.gestordeinventario.data.ResultadoVenta
-import com.ddam_a1.gestordeinventario.data.Ventas
+import com.ddam_a1.gestordeinventario.data.services.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.Material

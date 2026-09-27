@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.services
 
 import java.security.MessageDigest
 

@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.repos.memory
 
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
@@ -16,8 +16,10 @@ object Notificaciones {
         InventarioMateriales.obtenerTodos()
             .filter { InventarioMateriales.esStockBajo(it) }
             .map {
-                Aviso(it.id, TipoAviso.STOCK_BAJO_MATERIAL,
-                    "El material '" + it.nombre + "' esta bajo en inventario")
+                Aviso(
+                    it.id, TipoAviso.STOCK_BAJO_MATERIAL,
+                    "El material '" + it.nombre + "' esta bajo en inventario"
+                )
             }
 
     /**
@@ -30,8 +32,10 @@ object Notificaciones {
         CatalogoProductos.obtenerTodos()
             .filter { !it.esBajoPedido && it.stockMinimo > 0 && it.stockDisponible <= it.stockMinimo }
             .map {
-                Aviso(it.id, TipoAviso.STOCK_BAJO_PRODUCTO,
-                    "Quedan " + it.stockDisponible + " piezas de '" + it.nombre + "'")
+                Aviso(
+                    it.id, TipoAviso.STOCK_BAJO_PRODUCTO,
+                    "Quedan " + it.stockDisponible + " piezas de '" + it.nombre + "'"
+                )
             }
 
     // RF17: materiales proximos a caducar, con los dias de antelacion de RF18
@@ -46,8 +50,10 @@ object Notificaciones {
                 val diasRestantes = ((fecha.time - hoy.time) / (1000 * 60 * 60 * 24)).toInt()
                 if (diasRestantes in 0..material.diasAvisoCaducidad) {
                     avisos.add(
-                        Aviso(material.id, TipoAviso.CADUCIDAD,
-                            "El material '" + material.nombre + "' caduca el " + fechaCad)
+                        Aviso(
+                            material.id, TipoAviso.CADUCIDAD,
+                            "El material '" + material.nombre + "' caduca el " + fechaCad
+                        )
                     )
                 }
             }

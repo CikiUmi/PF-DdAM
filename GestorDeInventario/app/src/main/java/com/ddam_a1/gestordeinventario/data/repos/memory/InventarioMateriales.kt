@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.repos.memory
 
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import java.util.UUID

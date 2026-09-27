@@ -1,6 +1,6 @@
 package com.ddam_a1.gestordeinventario.data.repos.memory
 
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
+import com.ddam_a1.gestordeinventario.data.services.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.data.Usuarios
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario

@@ -3,8 +3,8 @@ package com.ddam_a1.gestordeinventario.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
-import com.ddam_a1.gestordeinventario.data.RendimientoNegocio
-import com.ddam_a1.gestordeinventario.data.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.negocio.RendimientoNegocio
+import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo

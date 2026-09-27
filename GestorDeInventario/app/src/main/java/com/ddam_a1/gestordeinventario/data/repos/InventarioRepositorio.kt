@@ -1,6 +1,6 @@
 package com.ddam_a1.gestordeinventario.data.repos
 
-import com.ddam_a1.gestordeinventario.data.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.Producto

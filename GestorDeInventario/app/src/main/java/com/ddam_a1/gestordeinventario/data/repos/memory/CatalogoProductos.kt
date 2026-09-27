@@ -1,4 +1,4 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.repos.memory
 
 import com.ddam_a1.gestordeinventario.modelClasses.IngredienteReceta
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
@@ -43,7 +43,13 @@ object CatalogoProductos {
     // RF6: Seleccionar materiales usados y su cantidad (receta) para elaborar el producto
     fun agregarIngredienteReceta(productoId: String, materialId: String, cantidadUsada: Double): Boolean {
         val producto = productos.find { it.id == productoId } ?: return false
-        producto.receta.add(IngredienteReceta(productoId = productoId, materialId = materialId, cantidadUsada = cantidadUsada))
+        producto.receta.add(
+            IngredienteReceta(
+                productoId = productoId,
+                materialId = materialId,
+                cantidadUsada = cantidadUsada
+            )
+        )
         return true
     }
 

@@ -1,16 +1,18 @@
 package com.ddam_a1.gestordeinventario.data.repos.local
 
-import com.ddam_a1.gestordeinventario.data.AlmacenamientoLocal
-import com.ddam_a1.gestordeinventario.data.ErrorVenta
-import com.ddam_a1.gestordeinventario.data.ResultadoVenta
+import com.ddam_a1.gestordeinventario.data.services.AlmacenamientoLocal
+import com.ddam_a1.gestordeinventario.data.repos.memory.ErrorVenta
+import com.ddam_a1.gestordeinventario.data.repos.memory.ResultadoVenta
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
 import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
 import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
 import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
+import com.ddam_a1.gestordeinventario.data.dao.VentaDao
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.IngredienteReceta
+import com.ddam_a1.gestordeinventario.modelClasses.ItemVendido
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
@@ -20,6 +22,7 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.UUID
@@ -32,7 +35,8 @@ class InventarioRepositorioLocal @Inject constructor(
     private val loteDao: LoteDao,
     private val productoDao: ProductoDao,
     private val recetaDao: RecetaDao,
-    private val bitacoraDao: BitacoraDao
+    private val bitacoraDao: BitacoraDao,
+    private val ventaDao: VentaDao
 ) : InventarioRepositorio {
 
     // ---------- LOS FLUJOS ----------
@@ -308,10 +312,6 @@ class InventarioRepositorioLocal @Inject constructor(
     ): String = AlmacenamientoLocal.exportarACSV(nombreArchivo, encabezados, filas, contrasena)
 
     // ============================================================
-    //  VENTAS  ←  LA PARTE QUE FALTA, LA HACEMOS JUNTAS
-    //
-    //  Todo lo de abajo esta sin implementar a proposito. Lo que hay que hacer:
-    //
     //   1. `Venta` e `ItemVendido` como @Entity. Un ItemVendido apunta a su
     //      venta con `venta_id` (ForeignKey + CASCADE + indice), igual que los
     //      lotes con su material. Los precios van CONGELADOS en el item: eso ya
@@ -325,13 +325,117 @@ class InventarioRepositorioLocal @Inject constructor(
     //      del mismo producto tienen que sumar.
     // ============================================================
 
-    override fun ventasStream(): Flow<List<Venta>> = flowOf(emptyList())
+    override fun ventasStream(): Flow<List<Venta>> =
+        ventaDao.todas().map { lista ->
+            lista.map { fila -> fila.venta.apply { items = fila.items.toMutableList() } }
+        }
+
+    override suspend fun leerVenta(id: String): Venta? =
+        ventaDao.leer(id)?.let { fila -> fila.venta.apply { items = fila.items.toMutableList() } }
+
+    override suspend fun cancelarVenta(ventaId: String, fecha: String): Boolean {
+        val fila = ventaDao.leer(ventaId) ?: return false
+
+        // Se cancela ANTES de devolver nada. `cancelar` lleva AND cancelada = 0,
+        // asi que si dos toques llegan a la vez, el segundo recibe 0 y se va.
+        // Al reves —devolver y luego cancelar— dos toques devolverian el stock dos veces.
+        if (ventaDao.cancelar(ventaId) == 0) return false
+
+        for (item in fila.items) {
+            val producto = productoDao.leer(item.productoId) ?: continue
+            if (producto.esBajoPedido) {
+                for (ingrediente in recetaDao.recetaDe(item.productoId)) {
+                    materialDao.sumar(ingrediente.materialId, ingrediente.cantidadUsada * item.cantidad)
+                }
+            } else {
+                productoDao.sumarStock(item.productoId, item.cantidad)
+            }
+        }
+
+        registrarLog(fecha, "manual", "Venta " + ventaId + " cancelada y devuelta al inventario")
+        return true
+    }
 
     override suspend fun registrarVenta(
         fecha: String, items: List<Pair<String, Int>>
-    ): ResultadoVenta = ResultadoVenta.Fallo(ErrorVenta.VENTAS_NO_DISPONIBLES)
+    ): ResultadoVenta {
+        if (items.isEmpty()) return ResultadoVenta.Fallo(ErrorVenta.TICKET_VACIO)
 
-    override suspend fun cancelarVenta(ventaId: String, fecha: String): Boolean = false
+        // ---- Fase 0: acumular el ticket completo ----
+        val materialesRequeridos = mutableMapOf<String, Double>()
+        val productosRequeridos = mutableMapOf<String, Int>()
+        val productos = mutableMapOf<String, Producto>()   // cache: un renglon repetido no relee la base
 
-    override suspend fun leerVenta(id: String): Venta? = null
+        for ((productoId, cantidad) in items) {
+            if (cantidad <= 0) return ResultadoVenta.Fallo(ErrorVenta.CANTIDAD_INVALIDA)
+
+            val producto = productos[productoId]
+                ?: productoDao.leer(productoId)
+                ?: return ResultadoVenta.Fallo(ErrorVenta.PRODUCTO_NO_EXISTE)
+            productos[productoId] = producto
+
+            if (producto.esBajoPedido) {
+                // Bajo pedido: no hay pieza hecha, se gasta materia prima al vender.
+                for (ingrediente in recetaDao.recetaDe(productoId)) {
+                    materialesRequeridos[ingrediente.materialId] =
+                        (materialesRequeridos[ingrediente.materialId] ?: 0.0) +
+                                ingrediente.cantidadUsada * cantidad
+                }
+            } else {
+                productosRequeridos[productoId] =
+                    (productosRequeridos[productoId] ?: 0) + cantidad
+            }
+        }
+
+        // ---- Fase 1: revisar TOTALES, no renglon por renglon ----
+        // Si dos productos del ticket usan la misma harina, aqui ya vienen sumados.
+        for ((materialId, requerido) in materialesRequeridos) {
+            val material = materialDao.leer(materialId)
+                ?: return ResultadoVenta.Fallo(ErrorVenta.MATERIALES_INSUFICIENTES)
+            if (material.cantidadDisponible < requerido)
+                return ResultadoVenta.Fallo(ErrorVenta.MATERIALES_INSUFICIENTES)
+        }
+        for ((productoId, requerido) in productosRequeridos) {
+            if ((productos[productoId]?.stockDisponible ?: 0) < requerido)
+                return ResultadoVenta.Fallo(ErrorVenta.STOCK_INSUFICIENTE)
+        }
+
+        // ---- Fase 2: aplicar. De aqui para abajo ya nada devuelve Fallo ----
+        materialesRequeridos.forEach { (materialId, requerido) ->
+            materialDao.descontar(materialId, requerido)
+        }
+        productosRequeridos.forEach { (productoId, requerido) ->
+            productoDao.descontarStock(productoId, requerido)
+        }
+
+        // ---- Armar la venta. RF30: precio Y costo se congelan AQUI ----
+        val ventaId = UUID.randomUUID().toString()
+        val itemsVendidos = mutableListOf<ItemVendido>()
+        var total = 0.0
+        for ((productoId, cantidad) in items) {
+            val producto = productos[productoId] ?: continue
+            itemsVendidos.add(
+                ItemVendido(
+                    productoId = productoId,
+                    cantidad = cantidad,
+                    precioUnitario = producto.precioVenta,
+                    costoUnitarioProduccion = calcularCostoProduccion(productoId),
+                    ventaId = ventaId                       // <- la llave foranea
+                )
+            )
+            total += producto.precioVenta * cantidad
+        }
+
+        val venta = Venta(id = ventaId, fecha = fecha, total = total)
+        venta.items = itemsVendidos
+
+        // El orden importa: la venta PRIMERO. La llave foranea exige que exista
+        // antes de que lleguen sus items, o SQLite rechaza el insert.
+        ventaDao.guardarVenta(venta)
+        ventaDao.guardarItems(itemsVendidos)
+
+        registrarLog(fecha, "venta", "Venta " + ventaId + " registrada por un total de " + total)
+        return ResultadoVenta.Exito(venta)
+    }
 }
+

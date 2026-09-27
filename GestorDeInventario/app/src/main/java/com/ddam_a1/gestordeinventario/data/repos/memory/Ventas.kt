@@ -1,5 +1,6 @@
-package com.ddam_a1.gestordeinventario.data
+package com.ddam_a1.gestordeinventario.data.repos.memory
 
+import com.ddam_a1.gestordeinventario.data.services.AlmacenamientoLocal
 import com.ddam_a1.gestordeinventario.modelClasses.ItemVendido
 import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import java.util.UUID
@@ -10,16 +11,7 @@ enum class ErrorVenta {
     PRODUCTO_NO_EXISTE,
     CANTIDAD_INVALIDA,
     MATERIALES_INSUFICIENTES,
-    STOCK_INSUFICIENTE,
-
-    /**
-     * TEMPORAL: la tabla de ventas todavia no existe.
-     *
-     * Se borra en cuanto terminemos `VentaDao`. Esta aqui y no como un crash
-     * para que la app siga usable: al intentar vender sale un mensaje claro en
-     * vez de tronar.
-     */
-    VENTAS_NO_DISPONIBLES
+    STOCK_INSUFICIENTE
 }
 
 /** Resultado de intentar registrar una venta. */

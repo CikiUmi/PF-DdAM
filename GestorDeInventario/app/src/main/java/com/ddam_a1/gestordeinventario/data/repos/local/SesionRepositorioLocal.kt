@@ -2,7 +2,7 @@ package com.ddam_a1.gestordeinventario.data.repos.local
 
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.dao.UsuarioDao
-import com.ddam_a1.gestordeinventario.data.hashContrasena
+import com.ddam_a1.gestordeinventario.data.services.hashContrasena
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
