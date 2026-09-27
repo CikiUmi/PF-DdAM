@@ -1,5 +1,10 @@
 package com.ddam_a1.gestordeinventario.data
 
+import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
+import com.ddam_a1.gestordeinventario.data.dao.LoteDao
+import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
+import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
+import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.IngredienteReceta
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
