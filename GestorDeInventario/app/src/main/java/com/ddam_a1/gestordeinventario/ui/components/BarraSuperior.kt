@@ -13,9 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.Medidas
 
-/* ---------------------------------------------------------------- barras */
+// ============================================================
+//  APP BAR  (Figma 36:159)
+//
+//  Las tres variantes del diseno —Navegacion, Modal y Dashboard— son la misma
+//  barra: alto 56, 16 de lado, 12 de separacion. Lo que cambia es que haya
+//  flecha, que haya subtitulo y que haya una accion a la derecha, y eso ya
+//  son los tres parametros que tenia.
+//
+//  El titulo va en Lora (la familia display); el subtitulo en Nunito 16.
+// ============================================================
 
 @Composable
 fun BarraSuperior(
@@ -27,16 +37,15 @@ fun BarraSuperior(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 60.dp)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .heightIn(min = Medidas.barraSuperior)
+            .padding(horizontal = Margenes.lg),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (onAtras != null) {
             BotonIcono(Iconos.Atras, "Atrás", onAtras)
-        } else {
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(Margenes.md))
         }
-        Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
+        Column(Modifier.weight(1f)) {
             Text(
                 titulo,
                 style = MaterialTheme.typography.titleLarge,
@@ -47,7 +56,7 @@ fun BarraSuperior(
             if (subtitulo != null) {
                 Text(
                     subtitulo,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

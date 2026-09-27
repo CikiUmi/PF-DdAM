@@ -1,7 +1,6 @@
 package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -11,25 +10,35 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.Radios
 
+/**
+ * Figma "Chip / Tipo=Filtro" (36:66, 36:68).
+ *
+ * Sin borde: el diseno distingue seleccionado y no seleccionado solo por el
+ * relleno (primaryContainer contra surfaceContainerHigh). El borde que habia
+ * antes competia con el fondo y ensuciaba la fila de filtros.
+ */
 @Composable
 fun ChipFiltro(texto: String, activo: Boolean, onClick: () -> Unit) {
-    val fondo = if (activo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val letra = if (activo) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val fondo = if (activo) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.surfaceContainerHigh
+    val letra = if (activo) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
+
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(Radios.chip))
             .background(fondo)
-            .border(
-                1.dp,
-                if (activo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                RoundedCornerShape(18.dp)
-            )
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 9.dp)
+            .padding(horizontal = Margenes.lg, vertical = Margenes.sm)
     ) {
-        Text(texto, style = MaterialTheme.typography.labelMedium, color = letra)
+        Text(
+            texto,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = letra
+        )
     }
 }
