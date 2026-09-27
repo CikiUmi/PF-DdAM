@@ -15,6 +15,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.Medidas
 
 @Composable
 fun BotonIcono(
@@ -22,20 +24,31 @@ fun BotonIcono(
     descripcion: String,
     onClick: () -> Unit,
     tinte: Color? = null,
-    conPunto: Boolean = false
+    conPunto: Boolean = false,
+    /** Figma 41:722: en las cabeceras el icono va sobre un circulo gris. */
+    conFondo: Boolean = false
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
+            // 48 y no 44: es el minimo tocable de Material. El circulo pintado
+            // mide 40 (lo que dibuja el Figma), el area tocable es mayor.
+            .size(Medidas.areaToque)
             .clip(CircleShape)
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .then(
+                if (conFondo) Modifier
+                    .padding(Margenes.xs)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             icono,
             contentDescription = descripcion,
             tint = tinte ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(Medidas.icono)
         )
         if (conPunto) {
             Box(

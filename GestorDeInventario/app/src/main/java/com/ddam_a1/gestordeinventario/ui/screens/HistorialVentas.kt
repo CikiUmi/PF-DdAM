@@ -61,15 +61,14 @@ fun PantallaHistorialVentas(
                 TarjetaMetrica(
                     "Ingresos", dinero(ingresos),
                     ventas.count { !it.cancelada }.toString() + " ventas",
-                    MaterialTheme.colorScheme.primaryContainer,
-                    MaterialTheme.colorScheme.primary,
-                    Modifier.weight(1f)
+                    colorAcento = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                    colorNota = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TarjetaMetrica(
                     "Ganancia", dinero(ganancias), null,
-                    MaterialTheme.coloresExtra.correct.colorContainer,
-                    MaterialTheme.coloresExtra.correct.color,
-                    Modifier.weight(1f)
+                    colorAcento = MaterialTheme.coloresExtra.correct.color,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

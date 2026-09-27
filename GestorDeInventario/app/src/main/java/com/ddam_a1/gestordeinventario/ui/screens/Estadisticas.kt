@@ -68,12 +68,16 @@ fun PantallaEstadisticas(
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TarjetaMetrica("Ganancia", dinero(ganancia), null,
-                        MaterialTheme.coloresExtra.correct.colorContainer,
-                        MaterialTheme.coloresExtra.correct.color, Modifier.weight(1f))
-                    TarjetaMetrica("Costo", dinero(costo), null,
-                        MaterialTheme.colorScheme.secondaryContainer,
-                        MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+                    TarjetaMetrica(
+                        "Ganancia", dinero(ganancia), null,
+                        colorAcento = MaterialTheme.coloresExtra.correct.color,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TarjetaMetrica(
+                        "Costo", dinero(costo), null,
+                        colorAcento = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }

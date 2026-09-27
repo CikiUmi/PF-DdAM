@@ -2,117 +2,165 @@ package com.ddam_a1.gestordeinventario.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.ddam_a1.gestordeinventario.modelClasses.Aviso
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.ddam_a1.gestordeinventario.modelClasses.Venta
+import com.ddam_a1.gestordeinventario.ui.components.AccionRapida
 import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
-import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
-import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
-import com.ddam_a1.gestordeinventario.ui.components.EncabezadoSeccion
-import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
+import com.ddam_a1.gestordeinventario.ui.components.FilaVenta
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
-import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
-import com.ddam_a1.gestordeinventario.ui.dinero
-import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
+import com.ddam_a1.gestordeinventario.ui.components.TarjetaResumen
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 
-/**
- * Pantalla 4 - Menu principal (RF21, RF23).
- *
- * Es la que mas datos junta de toda la app: materiales, productos, ventas y
- * avisos. Y aun asi no pide ninguno: todos llegan ya calculados dentro de
- * `resumen`, y los avisos y el top ya resueltos.
- */
+// ============================================================
+//  PANTALLA 4 - INICIO   (Figma 41:708 / 41:978 / 41:1204)
+//
+//  Ya no es un tablero de numeros: es "que hago ahora". Arriba lo que
+//  necesita atencion, luego las dos cosas que se hacen a diario, luego los
+//  atajos y al final las ultimas ventas.
+//
+//  Los numeros completos se fueron a Rendimiento. Antes Inicio y Estadisticas
+//  mostraban casi lo mismo y no habia razon para tener las dos.
+// ============================================================
+
 @Composable
 fun PantallaInicio(
-    nombreUsuario: String?,
-    avisos: List<Aviso>,
-    resumen: ResumenInicio,
-    masVendidos: List<VentaPorProducto>,
+    avisos: Int,
+    materialesBajos: Int,
+    totalMateriales: Int,
+    totalProductos: Int,
+    ultimasVentas: List<Venta>,
+    detalleDeVenta: (Venta) -> String,
+    dinero: (Double) -> String,
     onAvisos: () -> Unit,
     onConfiguracion: () -> Unit,
-    onEstadisticas: () -> Unit,
     onNuevaVenta: () -> Unit,
+    onEntradaStock: () -> Unit,
     onInventario: () -> Unit,
     onCatalogo: () -> Unit,
+    onVenta: (Venta) -> Unit,
     onDestino: (DestinoBarra) -> Unit
 ) {
     Marco(
         barra = {
-            BarraSuperior("Inicio", nombreUsuario) {
-                BotonIcono(Iconos.Campana, "Avisos", { onAvisos() }, conPunto = avisos.isNotEmpty())
-                BotonIcono(Iconos.Ajustes, "Configuracion", { onConfiguracion() })
+            // La cabecera de Inicio no es una App Bar de navegacion: no tiene
+            // flecha y el titulo es mas grande (Lora 28, Figma 41:720).
+            Row(
+                Modifier.fillMaxWidth().padding(
+                    start = Margenes.pantalla, end = Margenes.sm, top = Margenes.sm
+                ),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    "Inicio",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f).semantics { heading() }
+                )
+                BotonIcono(
+                    Iconos.Campana, "Avisos", { onAvisos() },
+                    conPunto = avisos > 0, conFondo = true
+                )
+                BotonIcono(
+                    Iconos.Ajustes, "Configuración", { onConfiguracion() },
+                    conFondo = true
+                )
             }
         },
         pie = { BarraInferior(DestinoBarra.INICIO, onDestino) }
     ) {
-        if (avisos.isNotEmpty()) {
+        if (materialesBajos > 0) {
             item {
                 BannerAviso(
-                    avisos.size.toString() + " avisos del inventario",
-                    avisos.first().mensaje,
-                    MaterialTheme.colorScheme.error,
-                    MaterialTheme.colorScheme.errorContainer
-                ) { onAvisos() }
-            }
-        }
-
-        item { EncabezadoSeccion("Metricas principales", "Estadisticas") { onEstadisticas() } }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica(
-                    "Ingresos del mes", dinero(resumen.ingresosDelMes),
-                    resumen.ventasDelMes.toString() + " ventas",
-                    MaterialTheme.colorScheme.primaryContainer,
-                    MaterialTheme.colorScheme.primary, Modifier.weight(1f)
-                )
-                TarjetaMetrica(
-                    "Ganancia", dinero(resumen.gananciaDelMes), null,
-                    MaterialTheme.coloresExtra.correct.colorContainer,
-                    MaterialTheme.coloresExtra.correct.color, Modifier.weight(1f)
+                    // El numero va en el texto: el color rojo solo no dice
+                    // cuantos son, ni sirve a quien no lo distingue.
+                    if (materialesBajos == 1) "1 material con stock bajo"
+                    else "$materialesBajos materiales con stock bajo",
+                    onClick = onInventario
                 )
             }
         }
+
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica(
-                    "Materiales", resumen.totalMateriales.toString(),
-                    resumen.materialesBajos.toString() + " bajos",
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    MaterialTheme.colorScheme.secondary, Modifier.weight(1f)
-                ) { onInventario() }
-                TarjetaMetrica(
-                    "Productos", resumen.totalProductos.toString(), null,
-                    MaterialTheme.colorScheme.tertiaryContainer,
-                    MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)
-                ) { onCatalogo() }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+            ) {
+                AccionRapida(
+                    Iconos.Ventas, "Registrar venta",
+                    modifier = Modifier.weight(1f), onClick = onNuevaVenta
+                )
+                AccionRapida(
+                    Iconos.Caja, "Entrada stock",
+                    modifier = Modifier.weight(1f), onClick = onEntradaStock
+                )
             }
         }
 
-        item { EncabezadoSeccion("Mas vendidos del mes") }
-        if (masVendidos.isEmpty()) {
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+            ) {
+                TarjetaResumen(
+                    etiqueta = "Materiales",
+                    valor = "$totalMateriales ítems",
+                    nota = if (materialesBajos > 0) "$materialesBajos con stock bajo"
+                    else "Todos con stock",
+                    modifier = Modifier.weight(1f),
+                    notaEsAlerta = materialesBajos > 0,
+                    onClick = onInventario
+                )
+                TarjetaResumen(
+                    etiqueta = "Productos",
+                    valor = "$totalProductos ítems",
+                    nota = "Todos activos",
+                    modifier = Modifier.weight(1f),
+                    onClick = onCatalogo
+                )
+            }
+        }
+
+        item {
+            Text(
+                "Últimas ventas",
+                style = MaterialTheme.typography.tituloMedio,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
+            )
+        }
+
+        if (ultimasVentas.isEmpty()) {
             item {
-                Text("Aun no hay ventas este mes.", style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EstadoVacio(
+                    "Sin ventas todavía",
+                    "Toca «Registrar venta» para anotar la primera",
+                    textoAccion = "Registrar venta",
+                    onAccion = onNuevaVenta
+                )
             }
         } else {
-            items(masVendidos.size) { i ->
-                val renglon = masVendidos[i]
-                FilaLista(renglon.nombre, valor = renglon.piezas.toString(), notaValor = "piezas")
+            items(ultimasVentas.size) { i ->
+                val venta = ultimasVentas[i]
+                FilaVenta(
+                    titulo = detalleDeVenta(venta),
+                    detalle = venta.fecha,
+                    total = dinero(venta.total),
+                    cancelada = venta.cancelada,
+                    onClick = { onVenta(venta) }
+                )
             }
-        }
-
-        item {
-            Spacer(Modifier.height(4.dp))
-            BotonPrincipal("Registrar una venta") { onNuevaVenta() }
         }
     }
 }

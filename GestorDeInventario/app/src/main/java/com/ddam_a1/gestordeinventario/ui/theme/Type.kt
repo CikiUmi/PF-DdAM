@@ -2,8 +2,10 @@ package com.ddam_a1.gestordeinventario.ui.theme
 import com.ddam_a1.gestordeinventario.R
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.googlefonts.Font
@@ -55,3 +57,17 @@ val AppTypography = Typography(
     labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily),
 )
 
+// ============================================================
+//  UN TAMANO QUE MATERIAL NO TRAE
+//
+//  El Figma usa Lora SemiBold 20 en un monton de sitios: titulo de la App Bar,
+//  encabezados de seccion, el valor de las tarjetas de resumen, el precio del
+//  catalogo. En la escala de Material no hay 20: titleLarge son 22 y
+//  titleMedium 16.
+//
+//  En vez de escribir `.copy(fontSize = 20.sp)` en quince lugares, se nombra
+//  una vez. Es lo mismo que hace Margenes.kt con los dp.
+// ============================================================
+
+val Typography.tituloMedio: TextStyle
+    get() = titleLarge.copy(fontSize = 20.sp)

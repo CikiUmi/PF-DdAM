@@ -65,7 +65,7 @@ fun PantallaUsuarios(
         } else {
             item { EncabezadoSeccion("Nuevo usuario") }
             item { CampoTexto(nombre, "Usuario", { nombre = it }) }
-            item { CampoTexto(clave, "Contrasena", { clave = it }) }
+            item { CampoTexto(clave, "Contrasena", { clave = it }, esContrasena = true) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Rol.entries.forEach { rol ->

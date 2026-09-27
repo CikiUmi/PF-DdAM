@@ -19,8 +19,8 @@ import com.ddam_a1.gestordeinventario.data.repos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
+import com.ddam_a1.gestordeinventario.ui.dinero
 import com.ddam_a1.gestordeinventario.ui.hoy
-import com.ddam_a1.gestordeinventario.ui.screens.ResumenInicio
 import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
@@ -121,7 +121,7 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                         // El ViewModel guarda la sesion si la contrasena es
                         // correcta; aqui solo se decide que hacer con el "no".
                         if (sesionVm.iniciarSesion(usuario, clave) == null) {
-                            errorLogin = "Usuario o contrasena incorrectos"
+                            errorLogin = "Usuario o contraseña incorrectos"
                         } else {
                             entrarALaApp()
                         }
@@ -134,15 +134,16 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
         composable(RUTA_CREAR_ADMIN) {
             PantallaCrearAdmin(
-                onCrear = { usuario, clave ->
+                onCrear = { usuario, clave, negocio ->
                     scope.launch {
                         // Devuelve null si el nombre ya esta tomado; en ese caso
                         // no se avanza.
-                        if (sesionVm.crearUsuarioAdministrador(usuario, clave) != null) {
+                        if (sesionVm.crearUsuarioAdministrador(usuario, clave, negocio) != null) {
                             navController.navigate(RUTA_ELEGIR_MODO)
                         }
                     }
-                }
+                },
+                onAtras = atras
             )
         }
 
@@ -151,7 +152,8 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 onEmpezar = { equipo ->
                     sesionVm.elegirModo(equipo)
                     entrarALaApp()
-                }
+                },
+                onAtras = atras
             )
         }
 
@@ -161,32 +163,31 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val materiales by inventarioVm.materiales.collectAsState()
             val productos by inventarioVm.productos.collectAsState()
             val ventas by inventarioVm.ventas.collectAsState()
-            val usuario by sesionVm.usuarioActual.collectAsState()
             val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
 
-            val delMes = inventarioVm.filtrarVentasPorPeriodo(ventas, Periodo.MENSUAL, hoy())
-
             PantallaInicio(
-                nombreUsuario = usuario?.nombreUsuario,
-                avisos = avisos,
-                resumen = ResumenInicio(
-                    ingresosDelMes = inventarioVm.calcularIngresos(delMes),
-                    gananciaDelMes = inventarioVm.calcularGanancias(delMes),
-                    ventasDelMes = delMes.size,
-                    totalMateriales = materiales.size,
-                    materialesBajos = materiales.count { inventarioVm.esStockBajo(it) },
-                    totalProductos = productos.size
-                ),
-                masVendidos = inventarioVm.productosMasVendidos(delMes, 3).map { (id, piezas) ->
-                    val producto = productos.find { it.id == id }
-                    VentaPorProducto(producto?.nombre ?: "Producto", piezas, producto?.precioVenta ?: 0.0)
+                avisos = avisos.count { !it.leido },
+                materialesBajos = materiales.count { inventarioVm.esStockBajo(it) },
+                totalMateriales = materiales.size,
+                totalProductos = productos.size,
+                // Solo las tres ultimas: Inicio es un vistazo, el historial
+                // completo esta en su propia pantalla.
+                ultimasVentas = ventas.take(3),
+                detalleDeVenta = { venta ->
+                    venta.items.firstOrNull()
+                        ?.let { item -> productos.find { it.id == item.productoId }?.nombre }
+                        ?: "Venta"
                 },
+                dinero = ::dinero,
                 onAvisos = { navController.navigate(RUTA_AVISOS) },
                 onConfiguracion = { navController.navigate(RUTA_CONFIGURACION) },
-                onEstadisticas = { navController.navigate(RUTA_ESTADISTICAS) },
                 onNuevaVenta = { navController.navigate(RUTA_NUEVA_VENTA) },
+                // "Entrada stock" lleva al inventario: la entrada se registra
+                // desde el detalle de cada material, no hay pantalla propia.
+                onEntradaStock = { irADestino(DestinoBarra.INVENTARIO) },
                 onInventario = { irADestino(DestinoBarra.INVENTARIO) },
                 onCatalogo = { irADestino(DestinoBarra.CATALOGO) },
+                onVenta = { navController.navigate(RUTA_HISTORIAL_VENTAS) },
                 onDestino = { destino -> irADestino(destino) }
             )
         }
@@ -602,10 +603,12 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             // La unica pantalla que junta los dos mundos: la bitacora es del
             // inventario y el modo de equipo es de la sesion.
             val modoEquipo by sesionVm.modoEquipo.collectAsState()
+            val nombreNegocio by sesionVm.nombreNegocio.collectAsState()
             val usuarios by sesionVm.usuarios.collectAsState()
             val bitacora by inventarioVm.bitacora.collectAsState()
 
             PantallaConfiguracion(
+                nombreNegocio = nombreNegocio,
                 modoEquipo = modoEquipo,
                 totalUsuarios = usuarios.size,
                 bitacora = bitacora.reversed(),

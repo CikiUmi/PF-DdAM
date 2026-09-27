@@ -51,18 +51,18 @@ fun PantallaCrearAdmin(
             CampoTexto(usuario, "Usuario", { usuario = it },
                 marcador = "Ej. admin_tienda")
 
-            CampoTexto(clave, "Contrasena", { clave = it },
+            CampoTexto(clave, "Contraseña", { clave = it },
                 esContrasena = true,
                 marcador = "Mínimo 8 caracteres",
                 // Solo se queja cuando ya escribiste algo: regañar por un campo
                 // vacio que acabas de tocar es ruido.
                 error = if (clave.isNotEmpty() && clave.length < 8)
-                    "La contrasena necesita al menos 8 caracteres" else null)
+                    "La contraseña necesita al menos 8 caracteres" else null)
 
-            CampoTexto(clave2, "Confirmar contrasena", { clave2 = it },
+            CampoTexto(clave2, "Confirmar contraseña", { clave2 = it },
                 esContrasena = true,
                 marcador = "Repite la contraseña",
-                error = if (clavesDistintas) "Las contrasenas no coinciden" else null)
+                error = if (clavesDistintas) "Las contraseñas no coinciden" else null)
         }
     }
 }

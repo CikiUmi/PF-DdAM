@@ -1,82 +1,56 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.OpcionSimple
+import com.ddam_a1.gestordeinventario.ui.components.TituloPantalla
+import com.ddam_a1.gestordeinventario.ui.theme.Anchos
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 
-/** Pantalla 3 - Elegir modo individual o equipo. */
+/**
+ * Pantalla 3 - Elegir modo de uso (RF25).
+ * Figma 38:780 / 38:920 / 38:1028.
+ */
 @Composable
-fun PantallaElegirModo(onEmpezar: (equipo: Boolean) -> Unit) {
+fun PantallaElegirModo(
+    onEmpezar: (equipo: Boolean) -> Unit,
+    onAtras: (() -> Unit)? = null
+) {
     var equipo by remember { mutableStateOf(false) }
 
-    Lienzo {
-        Text("Paso 2 de 2", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(6.dp))
-        Text("Quien va a usar la app?", style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(20.dp))
-
-        OpcionModo("Solo yo", "Un unico usuario administrador. Sin roles ni permisos que configurar.",
-            !equipo) { equipo = false }
-        Spacer(Modifier.height(12.dp))
-        OpcionModo("Mi equipo", "Varios usuarios en este dispositivo, cada uno con su rol: administrador, encargado o empleado.",
-            equipo) { equipo = true }
-
-        Spacer(Modifier.height(20.dp))
-        Text("Puedes cambiarlo despues en Configuracion.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(20.dp))
-        BotonPrincipal("Empezar") { onEmpezar(equipo) }
-    }
-}
-
-@Composable
-private fun OpcionModo(titulo: String, detalle: String, activo: Boolean, onClick: () -> Unit) {
-    val borde = if (activo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(if (activo) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
-            .border(1.5.dp, borde, RoundedCornerShape(20.dp))
-            .clickable { onClick() }.padding(16.dp)
+    Lienzo(
+        anchoTarjeta = Anchos.tarjetaAncha,
+        barra = { BarraSuperior("Modo de trabajo", onAtras = onAtras) },
+        pie = { BotonPrincipal("Empezar") { onEmpezar(equipo) } }
     ) {
-        Box(
-            Modifier.size(22.dp).clip(CircleShape).border(2.dp, borde, CircleShape),
-            contentAlignment = Alignment.Center
+        TituloPantalla("Elige cómo vas a usar la app", "Paso 2 de 2 · Estilo de administración")
+
+        // selectableGroup: le dice al lector de pantalla que las dos opciones
+        // son UNA sola eleccion ("1 de 2"), no dos interruptores sueltos.
+        Column(
+            Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(Margenes.lg)
         ) {
-            if (activo) Box(Modifier.size(11.dp).clip(CircleShape).background(borde))
-        }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(titulo, style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(4.dp))
-            Text(detalle, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OpcionSimple(
+                "Solo yo (administrador)",
+                "Gestiona solo tu negocio",
+                activo = !equipo
+            ) { equipo = false }
+
+            OpcionSimple(
+                "Mi equipo (con roles)",
+                "Invita equipo y asigna roles",
+                activo = equipo
+            ) { equipo = true }
         }
     }
 }

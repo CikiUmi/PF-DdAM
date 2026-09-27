@@ -67,6 +67,8 @@ object Radios {
     val busqueda = 28.dp
     val tarjeta = 18.dp
     val chip = 19.dp
+    /** Tarjetas grandes de Inicio: acciones, atajos y el banner (Figma 41:729). */
+    val accion = 20.dp
     val pestanas = 24.dp
     val pestanaActiva = 20.dp
     val dialogo = 24.dp

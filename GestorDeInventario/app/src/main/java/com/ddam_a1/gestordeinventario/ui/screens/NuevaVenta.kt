@@ -92,11 +92,9 @@ fun PantallaNuevaVenta(
         }
         if (error != null) {
             item {
-                BannerAviso(
-                    "No se pudo registrar", error,
-                    MaterialTheme.colorScheme.error,
-                    MaterialTheme.colorScheme.errorContainer
-                ) { onDescartarError() }
+                // El banner ya es de error por dentro: el titulo aparte
+                // sobraba, el motivo solo se explica mejor.
+                BannerAviso(error, onClick = { onDescartarError() })
             }
         }
         item {

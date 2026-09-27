@@ -60,7 +60,7 @@ fun CampoTexto(
     sufijo: String? = null,
     /** Oculta lo escrito y agrega el ojo para mostrarlo (Figma: Tipo=Password). */
     esContrasena: Boolean = false,
-    marcador: String = "Escribe aqui...",
+    marcador: String = "Escribe aquí...",
     /**
      * Si no es null: el borde se pone rojo y el mensaje aparece DEBAJO del
      * campo, con la etiqueta intacta. Asi lo compone la pantalla de login
@@ -152,7 +152,7 @@ fun CampoTexto(
                     Icon(
                         imageVector = if (visible) Iconos.OjoOculto else Iconos.Ojo,
                         contentDescription =
-                            if (visible) "Ocultar contrasena" else "Mostrar contrasena",
+                            if (visible) "Ocultar contraseña" else "Mostrar contraseña",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Medidas.icono)
                     )

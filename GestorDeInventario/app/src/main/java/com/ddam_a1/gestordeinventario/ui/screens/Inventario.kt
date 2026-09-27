@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,7 +22,6 @@ import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
 import com.ddam_a1.gestordeinventario.ui.dinero
-import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
 private enum class FiltroInv { TODOS, BAJOS, CADUCAN }
 
@@ -79,13 +77,14 @@ fun PantallaInventario(
             items(lista.size) { i ->
                 val m = lista[i]
                 val bajo = esStockBajo(m)
+                // Es la variante "Alerta=Si" del Figma (45:508): el aviso va como
+                // texto rojo junto al precio, no como nota debajo de la cantidad.
                 FilaLista(
-                    m.nombre,
-                    dinero(m.costoUnitario) + " / " + m.unidadMedida +
+                    titulo = m.nombre,
+                    subtitulo = dinero(m.costoUnitario) + " / " + m.unidadMedida +
                         (if (m.fechasCaducidad.isNotEmpty()) " - caduca " + m.fechasCaducidad.min() else ""),
-                    cant(m.cantidadDisponible) + " " + m.unidadMedida,
-                    if (bajo) "stock bajo" else null,
-                    if (bajo) MaterialTheme.colorScheme.error else MaterialTheme.coloresExtra.correct.color
+                    valor = cant(m.cantidadDisponible) + " " + m.unidadMedida,
+                    alerta = if (bajo) "Stock bajo" else null
                 ) { onMaterial(m.id) }
             }
         }
