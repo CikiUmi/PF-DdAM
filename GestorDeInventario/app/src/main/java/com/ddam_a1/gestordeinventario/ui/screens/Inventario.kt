@@ -1,37 +1,72 @@
 package com.ddam_a1.gestordeinventario.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
-import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
+import com.ddam_a1.gestordeinventario.ui.components.Iconos
+import com.ddam_a1.gestordeinventario.ui.components.PanelLateral
 import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
+import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.anchoPantallaDe
+import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 
-private enum class FiltroInv { TODOS, BAJOS, CADUCAN }
+private enum class FiltroInv(val etiqueta: String) {
+    TODOS("Todos"), BAJOS("Stock bajo"), CADUCAN("Caducan")
+}
 
-/**
- * Pantalla 6 - Inventario de materiales (RF20).
- *
- * Recibe la lista ya hecha. No sabe de donde sale ni le pide nada a nadie.
- * `esStockBajo` llega como funcion para que la regla ("cuando la cantidad baja
- * del minimo") viva en una sola parte y la pantalla solo la consulte.
- */
+// ============================================================
+//  PANTALLA 6 - INVENTARIO   (Figma 43:690 / 43:973 / 43:1233)
+//
+//  Recibe la lista ya hecha. `esStockBajo` llega como funcion para que la
+//  regla viva en un solo sitio y la pantalla solo la consulte.
+//
+//  Las tres medidas cambian COMO se ve la lista, no que hay en ella:
+//    COMPACTA   una tarjeta por renglon
+//    MEDIA      dos columnas de tarjetas: en 700 una sola columna deja
+//               la mitad del ancho en blanco
+//    EXPANDIDA  tabla con encabezados y navegacion lateral. Con 944 de ancho
+//               se pueden alinear las columnas y comparar de un vistazo
+// ============================================================
+
 @Composable
 fun PantallaInventario(
     materiales: List<Material>,
@@ -40,15 +75,13 @@ fun PantallaInventario(
     onNuevoMaterial: () -> Unit,
     onDestino: (DestinoBarra) -> Unit
 ) {
-    // El texto de busqueda y el chip elegido SI son estado de esta pantalla:
-    // nadie mas los necesita y no sobreviven a salir de aqui. Por eso van en
-    // un `remember` y no suben al NavHost.
+    // Busqueda y filtro SI son estado de esta pantalla: nadie mas los
+    // necesita y no sobreviven a salir de aqui.
     var texto by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf(FiltroInv.TODOS) }
 
-    // El filtrado se hace aqui sobre la lista que ya llego. Con Room y miles de
-    // materiales esto se convertiria en un WHERE en el DAO; con las decenas de
-    // un negocio chico, filtrar en memoria es correcto y mas simple.
+    // Filtrar en memoria es correcto con las decenas de materiales de un
+    // negocio chico. Con miles, esto se volveria un WHERE en el DAO.
     val encontrados =
         if (texto.isBlank()) materiales
         else materiales.filter { it.nombre.contains(texto, ignoreCase = true) }
@@ -56,41 +89,253 @@ fun PantallaInventario(
     val lista = when (filtro) {
         FiltroInv.TODOS -> encontrados
         FiltroInv.BAJOS -> encontrados.filter { esStockBajo(it) }
-        FiltroInv.CADUCAN -> encontrados.filter { it.fechasCaducidad.isNotEmpty() }
+        FiltroInv.CADUCAN -> encontrados.filter { it.lotes.isNotEmpty() }
     }
 
-    Marco(
-        barra = { BarraSuperior("Inventario", materiales.size.toString() + " materiales") },
-        pie = { BarraInferior(DestinoBarra.INVENTARIO, onDestino) }
-    ) {
-        item { BarraBusqueda(texto, "Buscar material") { texto = it } }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChipFiltro("Todos", filtro == FiltroInv.TODOS) { filtro = FiltroInv.TODOS }
-                ChipFiltro("Stock bajo", filtro == FiltroInv.BAJOS) { filtro = FiltroInv.BAJOS }
-                ChipFiltro("Con caducidad", filtro == FiltroInv.CADUCAN) { filtro = FiltroInv.CADUCAN }
-            }
+    BoxWithConstraints {
+        when (anchoPantallaDe(maxWidth)) {
+            AnchoPantalla.EXPANDIDA -> InventarioTabla(
+                lista, esStockBajo, texto, { texto = it }, filtro, { filtro = it },
+                onMaterial, onNuevoMaterial, onDestino
+            )
+            else -> InventarioLista(
+                lista, esStockBajo, texto, { texto = it }, filtro, { filtro = it },
+                onMaterial, onNuevoMaterial, onDestino,
+                enDosColumnas = anchoPantallaDe(maxWidth) == AnchoPantalla.MEDIA
+            )
         }
+    }
+}
+
+// ---------- TELEFONO Y TELEFONO GIRADO ----------
+
+@Composable
+private fun InventarioLista(
+    lista: List<Material>,
+    esStockBajo: (Material) -> Boolean,
+    texto: String,
+    onTexto: (String) -> Unit,
+    filtro: FiltroInv,
+    onFiltro: (FiltroInv) -> Unit,
+    onMaterial: (String) -> Unit,
+    onNuevoMaterial: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit,
+    enDosColumnas: Boolean
+) {
+    Marco(
+        barra = { BarraSuperior("Inventario") },
+        pie = { BarraInferior(DestinoBarra.INVENTARIO, onDestino) },
+        flotante = { BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial) }
+    ) {
+        item { BarraBusqueda(texto, "Buscar material...", onTexto) }
+        item { FilaFiltros(filtro, onFiltro) }
+
         if (lista.isEmpty()) {
             item { EstadoVacio("Sin materiales", "Los materiales registrados aparecerán aquí") }
+        } else if (enDosColumnas) {
+            // De dos en dos. `chunked` en vez de una rejilla perezosa para no
+            // traer otra dependencia por una pantalla.
+            val parejas = lista.chunked(2)
+            items(parejas.size) { i ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
+                ) {
+                    parejas[i].forEach { m ->
+                        Box(Modifier.weight(1f)) { MaterialTarjeta(m, esStockBajo, onMaterial) }
+                    }
+                    // Relleno cuando el ultimo renglon trae uno solo: sin esto
+                    // esa tarjeta se estiraria al doble de ancho.
+                    if (parejas[i].size == 1) Box(Modifier.weight(1f)) {}
+                }
+            }
         } else {
-            items(lista.size) { i ->
-                val m = lista[i]
-                val bajo = esStockBajo(m)
-                // Es la variante "Alerta=Si" del Figma (45:508): el aviso va como
-                // texto rojo junto al precio, no como nota debajo de la cantidad.
-                FilaLista(
-                    titulo = m.nombre,
-                    subtitulo = dinero(m.costoUnitario) + " / " + m.unidadMedida +
-                        (if (m.fechasCaducidad.isNotEmpty()) " - caduca " + m.fechasCaducidad.min() else ""),
-                    valor = cant(m.cantidadDisponible) + " " + m.unidadMedida,
-                    alerta = if (bajo) "Stock bajo" else null
-                ) { onMaterial(m.id) }
+            items(lista.size) { i -> MaterialTarjeta(lista[i], esStockBajo, onMaterial) }
+        }
+    }
+}
+
+// ---------- TABLETA  (Figma 43:1233) ----------
+
+@Composable
+private fun InventarioTabla(
+    lista: List<Material>,
+    esStockBajo: (Material) -> Boolean,
+    texto: String,
+    onTexto: (String) -> Unit,
+    filtro: FiltroInv,
+    onFiltro: (FiltroInv) -> Unit,
+    onMaterial: (String) -> Unit,
+    onNuevoMaterial: () -> Unit,
+    onDestino: (DestinoBarra) -> Unit
+) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Row(Modifier.fillMaxSize().statusBarsPadding()) {
+            PanelLateral(DestinoBarra.INVENTARIO, onDestino)
+
+            Box(Modifier.weight(1f).fillMaxSize()) {
+                Column(
+                    Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = Margenes.xl),
+                    verticalArrangement = Arrangement.spacedBy(Margenes.lg)
+                ) {
+                    // Titulo y busqueda comparten renglon: en tableta la barra
+                    // de busqueda sola desperdiciaria toda una franja.
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Margenes.xl)
+                    ) {
+                        Text(
+                            "Inventario",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f).semantics { heading() }
+                        )
+                        Box(Modifier.width(380.dp)) {
+                            BarraBusqueda(texto, "Buscar material...", onTexto)
+                        }
+                    }
+
+                    FilaFiltros(filtro, onFiltro)
+
+                    if (lista.isEmpty()) {
+                        EstadoVacio("Sin materiales", "Los materiales registrados aparecerán aquí")
+                    } else {
+                        EncabezadoTabla()
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(Margenes.sm),
+                            contentPadding = PaddingValues(
+                                bottom = 88.dp
+                            )
+                        ) {
+                            items(lista.size) { i ->
+                                RenglonTabla(lista[i], esStockBajo, onMaterial)
+                            }
+                        }
+                    }
+                }
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 40.dp, bottom = Margenes.xl)
+                ) { BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial) }
             }
         }
-        item {
-            Spacer(Modifier.height(4.dp))
-            BotonPrincipal("Nuevo material") { onNuevoMaterial() }
+    }
+}
+
+// ---------- PIEZAS COMPARTIDAS ----------
+
+@Composable
+private fun FilaFiltros(filtro: FiltroInv, onFiltro: (FiltroInv) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Margenes.sm)) {
+        FiltroInv.entries.forEach { f ->
+            ChipFiltro(f.etiqueta, filtro == f) { onFiltro(f) }
         }
+    }
+}
+
+/** El subtitulo de una tarjeta: precio unitario y, si toca, el aviso. */
+@Composable
+private fun MaterialTarjeta(
+    m: Material,
+    esStockBajo: (Material) -> Boolean,
+    onMaterial: (String) -> Unit
+) {
+    val bajo = esStockBajo(m)
+    FilaLista(
+        titulo = m.nombre,
+        subtitulo = dinero(m.costoUnitario) + " / " + m.unidadMedida,
+        valor = cant(m.cantidadDisponible) + " " + m.unidadMedida,
+        // Con la cantidad dentro del aviso: "Stock bajo" a secas obliga a
+        // buscar el numero al otro lado de la tarjeta.
+        alerta = if (bajo) "⚠ Stock bajo (" + cant(m.cantidadDisponible) + " " +
+            m.unidadMedida + ")" else null
+    ) { onMaterial(m.id) }
+}
+
+// Los pesos de las columnas salen del Figma (296/200/250/150 sobre 944) y se
+// comparten entre el encabezado y los renglones: si cambian, cambian en los
+// dos sitios a la vez y nunca se descuadran.
+private const val COL_MATERIAL = 296f
+private const val COL_COSTO = 200f
+private const val COL_ESTADO = 250f
+private const val COL_STOCK = 150f
+
+@Composable
+private fun EncabezadoTabla() {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Margenes.lg, vertical = Margenes.md),
+        horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
+    ) {
+        listOf(
+            "Material" to COL_MATERIAL,
+            "Costo unitario" to COL_COSTO,
+            "Alertas / Estado" to COL_ESTADO,
+            "Total en stock" to COL_STOCK
+        ).forEach { (titulo, peso) ->
+            Text(
+                titulo,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(peso)
+            )
+        }
+    }
+}
+
+@Composable
+private fun RenglonTabla(
+    m: Material,
+    esStockBajo: (Material) -> Boolean,
+    onMaterial: (String) -> Unit
+) {
+    val bajo = esStockBajo(m)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable { onMaterial(m.id) }
+            .padding(Margenes.lg)
+            .semantics(mergeDescendants = true) { },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
+    ) {
+        Text(
+            m.nombre,
+            style = MaterialTheme.typography.tituloMedio,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(COL_MATERIAL)
+        )
+        Text(
+            dinero(m.costoUnitario) + " / " + m.unidadMedida,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(COL_COSTO)
+        )
+        Box(Modifier.weight(COL_ESTADO)) {
+            if (bajo) {
+                Text(
+                    "⚠ Stock bajo",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (m.lotes.isNotEmpty()) {
+                Text(
+                    "Caduca " + m.lotes.minOf { it.caducidad },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(
+            cant(m.cantidadDisponible) + " " + m.unidadMedida,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(COL_STOCK)
+        )
     }
 }

@@ -45,6 +45,7 @@ object Iconos {
     val Quitar      = icono("quitar", "M5 12H19", 2.1f)
     val Atras       = icono("atras", "M15 18L9 12L15 6", 2.1f)
     val Siguiente   = icono("siguiente", "M9 18L15 12L9 6", 2.1f)
+    val Desplegar   = icono("desplegar", "M6 9L12 15L18 9", 2.1f)
     val Campana     = icono("campana", "M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21S18 15 18 8 M13.73 21A2 2 0 0 1 10.27 21")
     val Editar      = icono("editar", "M17 3A2.83 2.83 0 1 1 21 7L7.5 20.5L2 22L3.5 16.5Z")
     val Filtro      = icono("filtro", "M22 3H2L10 12.46V19L14 21V12.46Z")

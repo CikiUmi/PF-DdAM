@@ -6,6 +6,7 @@ import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.data.negocio.RendimientoNegocio
 import com.ddam_a1.gestordeinventario.data.repos.ResultadoVenta
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
+import com.ddam_a1.gestordeinventario.notificaciones.avisosQueSeNotifican
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
@@ -89,6 +90,15 @@ class InventarioViewModel @Inject constructor(
             repo.avisosDescartadosStream()   // marcar uno como leido redibuja la lista
         ) { _, _, _ -> repo.avisos(fechaHoy) }
 
+    /**
+     * Los avisos que la revision diaria mandaria al sistema, calculados AHORA.
+     *
+     * Solo lo usa el boton de prueba de Configuracion. Es `suspend` y no un
+     * Flow a proposito: se pregunta una vez, cuando alguien toca el boton.
+     */
+    suspend fun avisosQueSeNotificarian(fecha: String): List<Aviso> =
+        avisosQueSeNotifican(repo.avisos(fecha))
+
     fun marcarAvisoLeido(aviso: Aviso, fecha: String) {
         viewModelScope.launch { repo.marcarAvisoLeido(aviso.clave, fecha) }
     }
@@ -144,7 +154,9 @@ class InventarioViewModel @Inject constructor(
 
             val tieneCaducidad = !caducidad.isNullOrBlank()
             if (tieneCaducidad) {
-                repo.agregarFechaCaducidad(materialId, caducidad!!.trim())
+                // El lote se queda con la MISMA cantidad que acaba de entrar:
+                // son la misma entrada contada una sola vez.
+                repo.agregarLote(materialId, cantidad, caducidad!!.trim())
             }
 
             repo.registrarLog(
@@ -155,9 +167,9 @@ class InventarioViewModel @Inject constructor(
         }
     }
 
-    fun agregarFechaCaducidad(materialId: String, fecha: String) {
-        if (fecha.isBlank()) return
-        viewModelScope.launch { repo.agregarFechaCaducidad(materialId, fecha) }
+    fun agregarLote(materialId: String, cantidad: Double, fecha: String) {
+        if (fecha.isBlank() || cantidad <= 0.0) return
+        viewModelScope.launch { repo.agregarLote(materialId, cantidad, fecha) }
     }
 
     fun definirStockMinimo(materialId: String, minimo: Double) {

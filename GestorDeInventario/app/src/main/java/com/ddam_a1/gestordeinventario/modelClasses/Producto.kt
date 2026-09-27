@@ -20,7 +20,7 @@ data class Producto(
     /**
      * La receta tampoco es una columna: vive en la tabla `receta`.
      *
-     * Misma historia que `fechasCaducidad` en Material. `@Ignore` en el cuerpo,
+     * Misma historia que `lotes` en Material. `@Ignore` en el cuerpo,
      * y el repositorio la rellena despues de leer.
      */
     @Ignore

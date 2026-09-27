@@ -22,7 +22,8 @@ object Margenes {
     val xxl = 32.dp
 
     /** Margen lateral de una pantalla. */
-    val pantalla = 16.dp
+    /** Margen lateral de una pantalla. El Figma usa 24 en las tres medidas. */
+    val pantalla = 24.dp
 }
 
 object Medidas {

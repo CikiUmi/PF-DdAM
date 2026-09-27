@@ -51,5 +51,16 @@ data class LoteMaterial(
      * falta un TypeConverter. Si algun dia cambias a LocalDate, ahi si.
      */
     @ColumnInfo(name = "caducidad")
-    val caducidad: String
+    val caducidad: String,
+
+    /**
+     * Cuanto entro en ESTE lote, en la unidad del material.
+     *
+     * No se resta al vender: `materiales.cantidad_disponible` sigue siendo el
+     * total y la unica verdad del stock. Esto es el historial de la entrada,
+     * que es lo que hace falta para decir "estos 20 kg son los que caducan el
+     * 15 de marzo" en vez de un "Lote 1" sin peso.
+     */
+    @ColumnInfo(name = "cantidad")
+    val cantidad: Double = 0.0
 )

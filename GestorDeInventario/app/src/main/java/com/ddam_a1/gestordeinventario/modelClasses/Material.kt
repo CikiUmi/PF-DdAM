@@ -18,10 +18,10 @@ data class Material(
     @ColumnInfo(name = "dias_aviso_caducidad") var diasAvisoCaducidad: Int = 0 // RF18
 ) {
     // ============================================================
-    //  LAS FECHAS DE CADUCIDAD NO SON UNA COLUMNA
+    //  LOS LOTES NO SON UNA COLUMNA
     //
-    //  Antes esto era `val fechasCaducidad: MutableList<String>` dentro del
-    //  data class. En SQL eso no existe: una columna guarda UN valor, no una
+    //  Un material tiene VARIOS lotes, cada uno con su fecha y su cantidad.
+    //  En SQL eso no cabe en una columna: una columna guarda UN valor, no una
     //  lista. Se guarda al reves, en su propia tabla `lotes`, donde cada
     //  renglon apunta a SU material.
     //
@@ -34,5 +34,5 @@ data class Material(
     //  interfaz nunca se entero de que ahora son dos tablas.
     // ============================================================
     @Ignore
-    var fechasCaducidad: MutableList<String> = mutableListOf()
+    var lotes: MutableList<LoteMaterial> = mutableListOf()
 }

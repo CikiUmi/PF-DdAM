@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ddam_a1.gestordeinventario.data.dao.AvisoDescartadoDao
 import com.ddam_a1.gestordeinventario.data.dao.BitacoraDao
 import com.ddam_a1.gestordeinventario.data.dao.LoteDao
@@ -37,7 +39,7 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
         AvisoDescartado::class,
         Negocio::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -55,6 +57,22 @@ abstract class GestorDatabase : RoomDatabase() {
     abstract fun negocioDao(): NegocioDao
 
     companion object {
+
+        // ============================================================
+        //  LA PRIMERA MIGRACION DE VERDAD
+        //
+        //  Hasta aqui todo cambio de esquema borraba la base. Esta no: los
+        //  lotes que ya existian se quedan, con cantidad 0, porque en su
+        //  momento nadie pregunto cuanto entraba.
+        //
+        //  DEFAULT 0 no es un capricho: la columna es NOT NULL, asi que SQLite
+        //  necesita saber que poner en los renglones que ya estaban.
+        // ============================================================
+        private val MIGRACION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE lotes ADD COLUMN cantidad REAL NOT NULL DEFAULT 0")
+            }
+        }
 
         // @Volatile: siempre en memoria principal, nunca en cache de un hilo.
         // Sin esto, dos corrutinas podrian ver valores distintos de INSTANCE y
@@ -76,6 +94,11 @@ abstract class GestorDatabase : RoomDatabase() {
                     // Mientras el esquema siga cambiando: si no hay camino de una
                     // version a otra, borra y empieza de cero. El dia que haya
                     // datos de verdad, esto se cambia por addMigrations(...).
+                    // De la 4 a la 5 hay camino y los datos se conservan.
+                    // Para cualquier otro salto sigue valiendo borrar: mientras
+                    // el esquema se mueva, no vale la pena escribir migraciones
+                    // de versiones que nadie tiene instaladas.
+                    .addMigrations(MIGRACION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instancia
