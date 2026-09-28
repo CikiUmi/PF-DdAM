@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -173,7 +173,7 @@ private fun CatalogoConPanel(
     onDestino: (DestinoBarra) -> Unit
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Row(Modifier.fillMaxSize().statusBarsPadding()) {
+        Row(Modifier.fillMaxSize().systemBarsPadding()) {
             PanelLateral(DestinoBarra.CATALOGO, onDestino)
 
             Box(Modifier.weight(1f).fillMaxSize()) {

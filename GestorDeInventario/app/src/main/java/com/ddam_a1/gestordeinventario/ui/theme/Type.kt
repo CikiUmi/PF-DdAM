@@ -67,11 +67,21 @@ val AppTypography = Typography(
     //  funcionaba para quien no ve de cerca.
     // ============================================================
     bodyLarge = baseline.bodyLarge.copy(fontFamily = bodyFontFamily),
+    //  Y CON LA LETRA SUBE EL RENGLON
+    //
+    //  `fontSize` solo cambia el tamano de la letra; el alto del renglon es
+    //  otro valor. Los tres estilos chicos de Material traen renglon de 16,
+    //  que le quedaba bien a una letra de 11 o 12. Con la letra en 16, la
+    //  letra mide lo mismo que su renglon: las colas de la g y la p se salen
+    //  de la caja y el texto se pega a lo que tenga debajo.
+    //
+    //  20 es lo que Material usa para sus estilos de 14, con la misma
+    //  proporcion. Los otros tres ya venian con 20 y no hay que tocarlos.
     bodyMedium = baseline.bodyMedium.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
-    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    bodySmall = baseline.bodySmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp, lineHeight = 20.sp),
     labelLarge = baseline.labelLarge.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
-    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
-    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp),
+    labelMedium = baseline.labelMedium.copy(fontFamily = bodyFontFamily, fontSize = 16.sp, lineHeight = 20.sp),
+    labelSmall = baseline.labelSmall.copy(fontFamily = bodyFontFamily, fontSize = 16.sp, lineHeight = 20.sp),
 )
 
 // ============================================================

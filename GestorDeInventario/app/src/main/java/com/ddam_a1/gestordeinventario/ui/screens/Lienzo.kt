@@ -7,9 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,8 +78,9 @@ fun Lienzo(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding(),
+                    // Arriba la barra de estado, abajo el indicador de
+                    // gestos: los dos los mide el sistema, no el diseno.
+                    .systemBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 // En tableta la tarjeta se centra verticalmente; en telefono el
                 // contenido arranca arriba y el pie se va al fondo.

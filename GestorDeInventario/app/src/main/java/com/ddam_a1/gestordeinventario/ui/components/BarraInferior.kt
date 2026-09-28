@@ -5,9 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,8 +60,18 @@ fun BarraInferior(destinoActual: DestinoBarra, onDestino: (DestinoBarra) -> Unit
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
+            // La zona segura se calcula arriba, en Marco, que es quien
+            // conoce la pantalla entera. Esta llamada queda por si algun dia
+            // la barra se usa fuera de Marco: Compose descuenta los insets ya
+            // aplicados por un ancestro, asi que aqui dentro vale cero y no
+            // se suma dos veces.
             .navigationBarsPadding()
-            .height(Medidas.barraInferior)
+            // Alto MINIMO y no alto fijo: 64 es lo que pedia el Figma con
+            // etiquetas de 12. Con las de 16 y su renglon de 20, el contenido
+            // necesita 68 (12 + 24 de icono + 4 + 20 + 8) y en una caja de 64
+            // el texto se salia por abajo. Asi la barra crece lo que haga
+            // falta, y tambien cuando el usuario agranda la letra del sistema.
+            .heightIn(min = Medidas.barraInferior)
             .padding(start = Margenes.lg, end = Margenes.lg, top = Margenes.md, bottom = Margenes.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -74,9 +83,13 @@ fun BarraInferior(destinoActual: DestinoBarra, onDestino: (DestinoBarra) -> Unit
             Column(
                 Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    // El area tocable es toda la columna, no solo el icono:
-                    // asi cada destino tiene bastante mas de los 48dp minimos.
+                    // El area tocable es la columna entera y no solo el
+                    // icono: 48 de alto (icono, hueco y etiqueta) por un
+                    // cuarto del ancho, bastante mas que el minimo tocable.
+                    //
+                    // Llenar el alto seria un error ahora: la barra ya no
+                    // tiene alto fijo, asi que el alto disponible es lo que
+                    // queda de PANTALLA y la barra se la comeria entera.
                     .clickable(onClickLabel = d.etiqueta) { onDestino(d) }
                     .semantics { if (activo) selected = true },
                 horizontalAlignment = Alignment.CenterHorizontally,

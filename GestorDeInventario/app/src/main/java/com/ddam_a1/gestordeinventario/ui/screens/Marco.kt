@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +21,24 @@ import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Anchos
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 
-/** Envoltura común: fondo del tema, barra de estado respetada y lista con separación. */
+// ============================================================
+//  LA ZONA SEGURA SE CALCULA AQUI, UNA VEZ
+//
+//  La app va de borde a borde (`enableEdgeToEdge` en MainActivity): el
+//  sistema dibuja SU barra de estado arriba y SU indicador de gestos abajo
+//  encima de la app. Cuanto miden no es un numero que se pueda escribir en
+//  el codigo: cambia con el telefono y con si el usuario usa gestos o los
+//  tres botones. Android lo informa en tiempo de ejecucion y Compose lo
+//  entrega como insets.
+//
+//  `systemBarsPadding()` pregunta por esos dos y aparta el hueco. Va en la
+//  columna de fuera, asi que TODO lo de dentro — lista, boton flotante y
+//  barra de abajo — queda dentro de la zona segura sin que cada pantalla se
+//  acuerde. Compose ademas descuenta lo ya apartado, de modo que un hijo que
+//  vuelva a pedir el mismo inset recibe cero en vez de duplicarlo.
+// ============================================================
+
+/** Envoltura común: fondo del tema, zona segura respetada y lista con separación. */
 @Composable
 fun Marco(
     barra: @Composable () -> Unit,
@@ -35,7 +52,7 @@ fun Marco(
     contenido: LazyListScope.() -> Unit
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(Modifier.fillMaxSize().systemBarsPadding()) {
             barra()
             Box(Modifier.weight(1f)) {
                 LazyColumn(
