@@ -288,19 +288,33 @@ class InventarioRepositorioLocal @Inject constructor(
                 )
             }
 
-    override suspend fun revisarCaducidadesProximas(fechaHoy: String): List<Aviso> {
+    override suspend fun revisarCaducidades(fechaHoy: String): List<Aviso> {
         val avisos = mutableListOf<Aviso>()
         for (material in materialDao.buscar("")) {
+            // Un material con cero dias de aviso es un material que no caduca:
+            // sus lotes ni siquiera piden fecha al darlos de alta.
             if (material.diasAvisoCaducidad <= 0) continue
             for (lote in loteDao.lotesDe(material.id)) {
                 val dias = diasEntre(fechaHoy, lote.caducidad) ?: continue
-                if (dias in 0..material.diasAvisoCaducidad) {
+                val cuanto = sinCeroSobrante(lote.cantidad) + " " + material.unidadMedida
+
+                // Los dias negativos son fechas que ya pasaron. Antes caian
+                // fuera del rango y el lote desaparecia de los avisos justo el
+                // dia en que mas importaba: el aviso se apagaba solo al caducar.
+                if (dias < 0) {
+                    avisos.add(
+                        Aviso(
+                            material.id, TipoAviso.CADUCADO,
+                            material.nombre,
+                            "Caducó el " + lote.caducidad + " · " + cuanto
+                        )
+                    )
+                } else if (dias <= material.diasAvisoCaducidad) {
                     avisos.add(
                         Aviso(
                             material.id, TipoAviso.CADUCIDAD,
                             material.nombre,
-                            "Caduca el " + lote.caducidad + " · " +
-                                sinCeroSobrante(lote.cantidad) + " " + material.unidadMedida
+                            "Caduca el " + lote.caducidad + " · " + cuanto
                         )
                     )
                 }
@@ -317,7 +331,7 @@ class InventarioRepositorioLocal @Inject constructor(
     override suspend fun avisos(fechaHoy: String): List<Aviso> {
         val vigentes = revisarStockBajo() +
                 revisarStockBajoProductos() +
-                revisarCaducidadesProximas(fechaHoy)
+                revisarCaducidades(fechaHoy)
 
         // Primero la limpieza: las marcas de avisos que ya no existen se van.
         // Si la lista viene vacia hay que borrar todo a mano, porque el SQL

@@ -107,7 +107,8 @@ interface InventarioRepositorio {
 
     suspend fun revisarStockBajo(): List<Aviso>
     suspend fun revisarStockBajoProductos(): List<Aviso>
-    suspend fun revisarCaducidadesProximas(fechaHoy: String): List<Aviso>
+    /** Lotes por caducar (CADUCIDAD) y lotes que ya caducaron (CADUCADO). */
+    suspend fun revisarCaducidades(fechaHoy: String): List<Aviso>
 
     /**
      * Los tres de arriba, juntos y ya marcados como leidos o no.

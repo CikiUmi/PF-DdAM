@@ -40,6 +40,8 @@ import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 fun PantallaInicio(
     avisos: Int,
     materialesBajos: Int,
+    /** Materiales con al menos un lote cuya fecha ya paso. */
+    materialesCaducados: Int,
     totalMateriales: Int,
     totalProductos: Int,
     ultimasVentas: List<Venta>,
@@ -89,6 +91,20 @@ fun PantallaInicio(
                     // cuantos son, ni sirve a quien no lo distingue.
                     if (materialesBajos == 1) "1 material con stock bajo"
                     else "$materialesBajos materiales con stock bajo",
+                    onClick = onInventario
+                )
+            }
+        }
+
+        // Lo caducado va DEBAJO de lo que esta por acabarse, y no arriba, por
+        // orden de accion: el stock bajo se resuelve comprando hoy, lo caducado
+        // ya solo se retira. Cuenta MATERIALES y no lotes: tres lotes vencidos
+        // del mismo material son un solo viaje al almacen.
+        if (materialesCaducados > 0) {
+            item {
+                BannerAviso(
+                    if (materialesCaducados == 1) "1 material caducado"
+                    else "$materialesCaducados materiales caducados",
                     onClick = onInventario
                 )
             }

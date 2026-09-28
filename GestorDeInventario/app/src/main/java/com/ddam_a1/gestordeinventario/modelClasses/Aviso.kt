@@ -7,7 +7,16 @@ package com.ddam_a1.gestordeinventario.modelClasses
  * compilaba mal, compilaba bien y el filtro dejaba de encontrar nada. Con enum,
  * el compilador revisa que el `when` cubra todos los casos.
  */
-enum class TipoAviso { STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO, CADUCIDAD }
+/**
+ * CADUCIDAD y CADUCADO son dos cosas distintas y por eso son dos valores.
+ *
+ * CADUCIDAD es prevencion: todavia se puede usar el lote, y de eso avisa la
+ * notificacion diaria. CADUCADO ya es un hecho consumado: no hay nada que
+ * prevenir, hay que sacar el lote del almacen. Sacar al sistema una
+ * notificacion por algo que ya no tiene remedio solo entrena al usuario a
+ * ignorarlas, asi que esto se ensena dentro de la app.
+ */
+enum class TipoAviso { STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO, CADUCIDAD, CADUCADO }
 
 /**
  * Un aviso del inventario.

@@ -175,6 +175,15 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             PantallaInicio(
                 avisos = avisos.count { !it.leido },
                 materialesBajos = materiales.count { inventarioVm.esStockBajo(it) },
+                // `distinct` sobre el material: un material con tres lotes
+                // vencidos trae tres avisos, y la franja diria "3 materiales"
+                // cuando es uno. Y solo los pendientes, para que descartar el
+                // aviso apague tambien la franja.
+                materialesCaducados = avisos
+                    .filter { !it.leido && it.tipo == TipoAviso.CADUCADO }
+                    .map { it.referenciaId }
+                    .distinct()
+                    .size,
                 totalMateriales = materiales.size,
                 totalProductos = productos.size,
                 // Solo las tres ultimas: Inicio es un vistazo, el historial
@@ -627,14 +636,20 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 stockBajo = pendientes.filter {
                     it.tipo == TipoAviso.STOCK_BAJO_MATERIAL || it.tipo == TipoAviso.STOCK_BAJO_PRODUCTO
                 },
-                porCaducar = pendientes.filter { it.tipo == TipoAviso.CADUCIDAD },
+                // Los dos en la misma seccion: es el mismo problema en dos
+                // momentos, y el mensaje de cada renglon ya dice "Caduca el" o
+                // "Caducó el".
+                porCaducar = pendientes.filter {
+                    it.tipo == TipoAviso.CADUCIDAD || it.tipo == TipoAviso.CADUCADO
+                },
                 leidos = avisos.filter { it.leido },
                 // El mismo renglon lleva a un material o a un producto segun de
                 // que avise. El `when` sobre el enum obliga a cubrir los tres.
                 onAviso = { aviso ->
                     when (aviso.tipo) {
                         TipoAviso.STOCK_BAJO_MATERIAL,
-                        TipoAviso.CADUCIDAD -> navController.navigate(rutaDetalleMaterial(aviso.referenciaId))
+                        TipoAviso.CADUCIDAD,
+                        TipoAviso.CADUCADO -> navController.navigate(rutaDetalleMaterial(aviso.referenciaId))
                         TipoAviso.STOCK_BAJO_PRODUCTO -> navController.navigate(rutaDetalleProducto(aviso.referenciaId))
                     }
                 },

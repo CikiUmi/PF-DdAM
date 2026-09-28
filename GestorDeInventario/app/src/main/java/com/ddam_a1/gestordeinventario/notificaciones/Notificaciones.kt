@@ -64,6 +64,10 @@ fun crearCanalDeAvisos(contexto: Context) {
  */
 fun avisosQueSeNotifican(todos: List<Aviso>): List<Aviso> =
     todos.filter { !it.leido && it.tipo == TipoAviso.CADUCIDAD }
+// CADUCIDAD y no CADUCADO: la notificacion sirve para llegar a tiempo, y lo
+// que ya caduco no llega a nada. Eso se ensena en la franja roja de Inicio,
+// donde no interrumpe. Para notificar tambien lo caducado, la condicion pasa a
+// `it.tipo != TipoAviso.STOCK_BAJO_MATERIAL && it.tipo != TipoAviso.STOCK_BAJO_PRODUCTO`.
 
 /**
  * Manda una notificacion por cada aviso.
