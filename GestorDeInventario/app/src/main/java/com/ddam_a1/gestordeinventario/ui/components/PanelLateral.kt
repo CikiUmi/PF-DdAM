@@ -2,7 +2,6 @@ package com.ddam_a1.gestordeinventario.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,12 +65,7 @@ fun PanelLateral(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Margenes.md)
         ) {
-            Box(
-                Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(Margenes.sm))
-                    .background(MaterialTheme.colorScheme.tertiary)
-            )
+            LogoApp(32.dp)
             Text(
                 "Gestor",
                 style = MaterialTheme.typography.titleLarge,
