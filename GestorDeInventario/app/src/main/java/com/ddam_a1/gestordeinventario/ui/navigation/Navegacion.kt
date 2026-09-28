@@ -640,7 +640,9 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 // momentos, y el mensaje de cada renglon ya dice "Caduca el" o
                 // "Caducó el".
                 porCaducar = pendientes.filter {
-                    it.tipo == TipoAviso.CADUCIDAD || it.tipo == TipoAviso.CADUCADO
+                    it.tipo == TipoAviso.CADUCIDAD || it.tipo == TipoAviso.CADUCADO ||
+                        it.tipo == TipoAviso.CADUCIDAD_PRODUCTO ||
+                        it.tipo == TipoAviso.CADUCADO_PRODUCTO
                 },
                 leidos = avisos.filter { it.leido },
                 // El mismo renglon lleva a un material o a un producto segun de
@@ -650,7 +652,9 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                         TipoAviso.STOCK_BAJO_MATERIAL,
                         TipoAviso.CADUCIDAD,
                         TipoAviso.CADUCADO -> navController.navigate(rutaDetalleMaterial(aviso.referenciaId))
-                        TipoAviso.STOCK_BAJO_PRODUCTO -> navController.navigate(rutaDetalleProducto(aviso.referenciaId))
+                        TipoAviso.STOCK_BAJO_PRODUCTO,
+                        TipoAviso.CADUCIDAD_PRODUCTO,
+                        TipoAviso.CADUCADO_PRODUCTO -> navController.navigate(rutaDetalleProducto(aviso.referenciaId))
                     }
                 },
                 onMarcarLeido = { inventarioVm.marcarAvisoLeido(it, hoy()) },

@@ -63,11 +63,22 @@ fun crearCanalDeAvisos(contexto: Context) {
  * dentro de la app no te persigue afuera.
  */
 fun avisosQueSeNotifican(todos: List<Aviso>): List<Aviso> =
-    todos.filter { !it.leido && it.tipo == TipoAviso.CADUCIDAD }
-// CADUCIDAD y no CADUCADO: la notificacion sirve para llegar a tiempo, y lo
-// que ya caduco no llega a nada. Eso se ensena en la franja roja de Inicio,
-// donde no interrumpe. Para notificar tambien lo caducado, la condicion pasa a
-// `it.tipo != TipoAviso.STOCK_BAJO_MATERIAL && it.tipo != TipoAviso.STOCK_BAJO_PRODUCTO`.
+    todos.filter { !it.leido && it.tipo in TIPOS_QUE_SE_NOTIFICAN }
+
+/**
+ * Los que valen una interrupcion: lo que esta POR caducar, sea material o
+ * producto.
+ *
+ * Fuera quedan los dos de stock bajo, que se resuelven en la proxima compra y
+ * no tienen fecha limite, y los dos de ya caducado: la notificacion sirve para
+ * llegar a tiempo y ahi ya no se llega a nada. Eso se ensena dentro de la app,
+ * en la franja de Inicio y en la pantalla de Avisos, donde no interrumpe.
+ *
+ * Es una lista y no una condicion suelta para que se lea de un vistazo QUE se
+ * notifica: agregar o quitar un tipo es tocar este renglon.
+ */
+private val TIPOS_QUE_SE_NOTIFICAN =
+    setOf(TipoAviso.CADUCIDAD, TipoAviso.CADUCIDAD_PRODUCTO)
 
 /**
  * Manda una notificacion por cada aviso.

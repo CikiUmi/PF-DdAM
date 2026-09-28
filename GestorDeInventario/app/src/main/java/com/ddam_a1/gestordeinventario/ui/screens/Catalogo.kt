@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.data.repos.DIAS_AVISO_CADUCIDAD_PRODUCTO
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
@@ -58,14 +59,13 @@ private enum class FiltroCat(val etiqueta: String) {
 //    por caducar  su fecha mas cercana esta dentro de la ventana, o ya paso
 //
 //  La ventana es FIJA porque `Producto` no tiene un campo de dias de aviso
-//  como si lo tiene `Material`. Si algun dia hace falta afinarlo producto por
-//  producto, es una columna mas y este numero se va.
+//  como si lo tiene `Material`. El numero NO se escribe aqui: es el mismo con
+//  el que el repositorio decide a que producto le manda notificacion, y dos
+//  copias acabarian discrepando el dia que alguien cambie una sola.
 //
 //  Un producto bajo pedido no guarda existencias, asi que nunca esta bajo de
 //  stock: se fabrica cuando alguien lo encarga.
 // ============================================================
-
-private const val DIAS_DE_RIESGO = 7
 
 private fun stockBajoDe(p: Producto): Boolean =
     !p.esBajoPedido && p.stockMinimo > 0 && p.stockDisponible <= p.stockMinimo
@@ -78,7 +78,7 @@ private fun diasDeRiesgoDe(p: Producto): Int? {
     val fecha = p.caducidadMasCercana
     if (fecha.isNullOrBlank()) return null
     val dias = diasHasta(fecha) ?: return null
-    return if (dias <= DIAS_DE_RIESGO) dias else null
+    return if (dias <= DIAS_AVISO_CADUCIDAD_PRODUCTO) dias else null
 }
 
 private fun enRiesgo(p: Producto): Boolean =

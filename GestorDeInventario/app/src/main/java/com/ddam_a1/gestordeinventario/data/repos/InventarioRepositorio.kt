@@ -8,6 +8,26 @@ import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import kotlinx.coroutines.flow.Flow
 
 // ============================================================
+//  CUANTOS DIAS ANTES SE AVISA DE UN PRODUCTO QUE CADUCA
+//
+//  Un MATERIAL trae su propio numero de dias, que se elige al darlo de alta.
+//  Un producto no: la tabla `productos` no tiene esa columna, asi que la
+//  ventana es la misma para todos.
+//
+//  Vive aqui, y no dentro de la implementacion, porque el catalogo tambien lo
+//  necesita para marcar los productos en riesgo: si fueran dos numeros, la
+//  pastilla roja de una pantalla y el aviso de la otra podrian no coincidir.
+//  La interfaz la pueden leer las dos capas; al reves no, y por eso no vive
+//  en `ui`.
+//
+//  Para afinarlo producto por producto haria falta una columna nueva en
+//  `productos`, su migracion y un campo en el formulario. Entonces esta
+//  constante se va.
+// ============================================================
+
+const val DIAS_AVISO_CADUCIDAD_PRODUCTO = 7
+
+// ============================================================
 //  EL REPOSITORIO DEL NEGOCIO
 //
 //  Fijate en lo que NO hay en este archivo: ni un import de Room, ni de los
@@ -107,7 +127,13 @@ interface InventarioRepositorio {
 
     suspend fun revisarStockBajo(): List<Aviso>
     suspend fun revisarStockBajoProductos(): List<Aviso>
-    /** Lotes por caducar (CADUCIDAD) y lotes que ya caducaron (CADUCADO). */
+    /**
+     * Lo que caduca, de materiales y de productos.
+     *
+     * Cuatro tipos: por caducar y ya caducado, y de cada uno su version de
+     * material y de producto. El tipo es lo que le dice a la pantalla a donde
+     * llevar al tocar el aviso.
+     */
     suspend fun revisarCaducidades(fechaHoy: String): List<Aviso>
 
     /**

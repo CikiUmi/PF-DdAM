@@ -16,7 +16,11 @@ package com.ddam_a1.gestordeinventario.modelClasses
  * notificacion por algo que ya no tiene remedio solo entrena al usuario a
  * ignorarlas, asi que esto se ensena dentro de la app.
  */
-enum class TipoAviso { STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO, CADUCIDAD, CADUCADO }
+enum class TipoAviso {
+    STOCK_BAJO_MATERIAL, STOCK_BAJO_PRODUCTO,
+    CADUCIDAD, CADUCADO,
+    CADUCIDAD_PRODUCTO, CADUCADO_PRODUCTO
+}
 
 /**
  * Un aviso del inventario.

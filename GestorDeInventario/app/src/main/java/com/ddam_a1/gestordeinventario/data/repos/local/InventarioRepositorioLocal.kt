@@ -15,6 +15,7 @@ import com.ddam_a1.gestordeinventario.data.dao.MaterialDao
 import com.ddam_a1.gestordeinventario.data.dao.ProductoDao
 import com.ddam_a1.gestordeinventario.data.dao.RecetaDao
 import com.ddam_a1.gestordeinventario.data.dao.VentaDao
+import com.ddam_a1.gestordeinventario.data.repos.DIAS_AVISO_CADUCIDAD_PRODUCTO
 import com.ddam_a1.gestordeinventario.data.repos.InventarioRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
 import com.ddam_a1.gestordeinventario.modelClasses.AvisoDescartado
@@ -318,6 +319,41 @@ class InventarioRepositorioLocal @Inject constructor(
                         )
                     )
                 }
+            }
+        }
+
+        // ---- Productos ----
+        //
+        // Un producto no guarda lotes: guarda UNA fecha, la del material mas
+        // proximo a caducar de los que se usaron al producirlo. Por eso aqui
+        // hay una fecha por producto y no un bucle mas.
+        //
+        // Sin existencias no hay nada que caduque: un producto en cero, o uno
+        // bajo pedido (que se fabrica cuando lo encargan), no avisan aunque
+        // arrastren una fecha vieja de la ultima vez que se produjo.
+        for (producto in productoDao.buscar("")) {
+            if (producto.stockDisponible <= 0) continue
+            val fecha = producto.caducidadMasCercana
+            if (fecha.isNullOrBlank()) continue
+            val dias = diasEntre(fechaHoy, fecha) ?: continue
+            val cuanto = producto.stockDisponible.toString() + " piezas"
+
+            if (dias < 0) {
+                avisos.add(
+                    Aviso(
+                        producto.id, TipoAviso.CADUCADO_PRODUCTO,
+                        producto.nombre,
+                        "Caducó el " + fecha + " · " + cuanto
+                    )
+                )
+            } else if (dias <= DIAS_AVISO_CADUCIDAD_PRODUCTO) {
+                avisos.add(
+                    Aviso(
+                        producto.id, TipoAviso.CADUCIDAD_PRODUCTO,
+                        producto.nombre,
+                        "Caduca el " + fecha + " · " + cuanto
+                    )
+                )
             }
         }
         return avisos
