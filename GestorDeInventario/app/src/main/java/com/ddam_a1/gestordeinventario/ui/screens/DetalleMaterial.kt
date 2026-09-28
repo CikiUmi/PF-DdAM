@@ -53,6 +53,12 @@ import com.ddam_a1.gestordeinventario.ui.theme.Medidas
 import com.ddam_a1.gestordeinventario.ui.theme.Radios
 import com.ddam_a1.gestordeinventario.ui.theme.anchoPantallaDe
 import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 
 // ============================================================
 //  PANTALLA 7 - DETALLE DE MATERIAL   (Figma 43:786 / 43:1071 / 43:1331)
@@ -76,6 +82,7 @@ fun PantallaDetalleMaterial(
     onProducto: (String) -> Unit,
     onEditar: () -> Unit,
     onEliminar: () -> Unit,
+    onEliminarLote: (LoteMaterial) -> Unit,
     onAtras: () -> Unit
 ) {
     if (material == null) {
@@ -93,6 +100,8 @@ fun PantallaDetalleMaterial(
 
     var hoja by remember { mutableStateOf(false) }
     var confirmarBorrado by remember { mutableStateOf(false) }
+    // El lote que el usuario deslizo y todavia no confirma. Null es "ninguno".
+    var loteABorrar by remember { mutableStateOf<LoteMaterial?>(null) }
     var entrada by remember { mutableStateOf("0") }
     var nuevaFecha by remember { mutableStateOf("") }
     // El campo arranca en "0", que es invalido. Sin esto la hoja se abriria
@@ -116,12 +125,14 @@ fun PantallaDetalleMaterial(
             if (anchoPantallaDe(maxWidth) == AnchoPantalla.EXPANDIDA) {
                 DetalleDosColumnas(
                     material, bajo, usadoEn, onProducto, onEditar,
-                    { confirmarBorrado = true }, onAtras, abrirHoja
+                    { confirmarBorrado = true }, onAtras, abrirHoja,
+                    { lote -> loteABorrar = lote }
                 )
             } else {
                 DetalleUnaColumna(
                     material, bajo, usadoEn, onProducto, onEditar,
-                    { confirmarBorrado = true }, onAtras, abrirHoja
+                    { confirmarBorrado = true }, onAtras, abrirHoja,
+                    { lote -> loteABorrar = lote }
                 )
             }
         }
@@ -170,6 +181,30 @@ fun PantallaDetalleMaterial(
             }
         }
 
+        // Deslizar no borra por si solo: abre esta pregunta. Asi un deslizado
+        // sin querer no se lleva mercancia, y la fila vuelve a su sitio sola.
+        val lote = loteABorrar
+        if (lote != null) {
+            DialogoSiNo(
+                titulo = "Eliminar lote",
+                mensaje = "Se dará de baja este lote" +
+                    (if (lote.cantidad > 0.0)
+                        " y se descontarán " + cant(lote.cantidad) + " " + material.unidadMedida +
+                            " de la existencia."
+                    else ".") +
+                    " Esto no se puede deshacer.",
+                textoSi = "Eliminar",
+                textoNo = "Cancelar",
+                onSi = {
+                    loteABorrar = null
+                    onEliminarLote(lote)
+                },
+                onNo = { loteABorrar = null },
+                onCerrar = { loteABorrar = null },
+                destructivo = true
+            )
+        }
+
         if (confirmarBorrado) {
             DialogoSiNo(
                 titulo = "Eliminar material",
@@ -200,7 +235,8 @@ private fun DetalleUnaColumna(
     onEditar: () -> Unit,
     onEliminar: () -> Unit,
     onAtras: () -> Unit,
-    onRegistrarEntrada: () -> Unit
+    onRegistrarEntrada: () -> Unit,
+    onPedirBajaDeLote: (LoteMaterial) -> Unit
 ) {
     Marco(barra = {
         BarraSuperior(material.nombre, onAtras = onAtras) {
@@ -213,7 +249,10 @@ private fun DetalleUnaColumna(
         if (material.lotes.isNotEmpty()) {
             item { TituloSeccion("Lotes") }
             items(material.lotes.size) { i ->
-                FilaLote(material.lotes[i], material.unidadMedida, material.diasAvisoCaducidad)
+                FilaLote(
+                    material.lotes[i], material.unidadMedida,
+                    material.diasAvisoCaducidad, onPedirBajaDeLote
+                )
             }
         }
 
@@ -233,7 +272,8 @@ private fun DetalleDosColumnas(
     onEditar: () -> Unit,
     onEliminar: () -> Unit,
     onAtras: () -> Unit,
-    onRegistrarEntrada: () -> Unit
+    onRegistrarEntrada: () -> Unit,
+    onPedirBajaDeLote: (LoteMaterial) -> Unit
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -256,7 +296,10 @@ private fun DetalleDosColumnas(
                     if (material.lotes.isNotEmpty()) {
                         item { TituloSeccion("Lotes disponibles") }
                         items(material.lotes.size) { i ->
-                            FilaLote(material.lotes[i], material.unidadMedida, material.diasAvisoCaducidad)
+                            FilaLote(
+                                material.lotes[i], material.unidadMedida,
+                                material.diasAvisoCaducidad, onPedirBajaDeLote
+                            )
                         }
                     }
                 }
@@ -365,19 +408,79 @@ private fun TarjetaMaterial(material: Material, bajo: Boolean) {
 }
 
 
-/**
- * Un lote registrado: cuanto entro y cuando caduca (Figma 43:820).
- *
- * Se pinta de rojo con el MISMO criterio que usan los avisos y las
- * notificaciones: el lote entra en rojo cuando le quedan `diasAviso` dias o
- * menos. Si en la pantalla se viera un lote tranquilo y el telefono estuviera
- * mandando una notificacion por el, una de las dos estaria mintiendo.
- *
- * El rojo NO es la unica senal: el triangulo y el cambio de "Caduca" a
- * "Caducó" dicen lo mismo sin depender del color.
- */
+// ============================================================
+//  UN LOTE REGISTRADO  (Figma 43:820)
+//
+//  Cuanto entro y, si el material caduca, cuando. Se pinta de rojo con el
+//  MISMO criterio que usan los avisos y las notificaciones: el lote entra en
+//  rojo cuando le quedan `diasAviso` dias o menos. Si en la pantalla se viera
+//  un lote tranquilo y el telefono estuviera mandando una notificacion por el,
+//  una de las dos estaria mintiendo.
+//
+//  El rojo NO es la unica senal: el triangulo y el cambio de "Caduca" a
+//  "Caducó" dicen lo mismo sin depender del color.
+//
+//  SE DA DE BAJA DESLIZANDO HACIA LA IZQUIERDA. Un boton de basura por lote
+//  llenaria la lista de iconos rojos para algo que se hace de vez en cuando;
+//  el deslizado guarda la accion hasta que se busca. Y deslizar NO borra: pide
+//  confirmacion, porque al lote se le va detras la mercancia.
+//
+//  Solo de derecha a izquierda (`enableDismissFromStartToEnd = false`): con
+//  las dos direcciones, cualquier arrastre horizontal de la lista acaba
+//  disparando algo.
+// ============================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilaLote(lote: LoteMaterial, unidad: String, diasAviso: Int) {
+private fun FilaLote(
+    lote: LoteMaterial,
+    unidad: String,
+    diasAviso: Int,
+    onPedirBaja: (LoteMaterial) -> Unit
+) {
+    val estado = rememberSwipeToDismissBoxState(
+        // Se devuelve SIEMPRE false a proposito: el gesto no confirma el
+        // borrado, solo lo propone. La fila regresa a su sitio y el dialogo
+        // decide. Si devolviera true, cancelar en el dialogo dejaria la fila
+        // desaparecida sin haber borrado nada.
+        confirmValueChange = { valor ->
+            if (valor == SwipeToDismissBoxValue.EndToStart) onPedirBaja(lote)
+            false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = estado,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(Radios.campo))
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = Margenes.lg),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                Icon(
+                    Iconos.Basura,
+                    contentDescription = null,   // el dialogo que sigue ya lo dice
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    ) {
+        ContenidoLote(lote, unidad, diasAviso, onPedirBaja)
+    }
+}
+
+@Composable
+private fun ContenidoLote(
+    lote: LoteMaterial,
+    unidad: String,
+    diasAviso: Int,
+    onPedirBaja: (LoteMaterial) -> Unit
+) {
     val dias = diasHasta(lote.caducidad)
     val vencido = dias != null && dias < 0
     val porCaducar = dias != null && dias >= 0 && dias <= diasAviso
@@ -389,7 +492,13 @@ private fun FilaLote(lote: LoteMaterial, unidad: String, diasAviso: Int) {
             .clip(RoundedCornerShape(Radios.campo))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(Margenes.lg)
-            .semantics(mergeDescendants = true) { },
+            // El deslizado no existe para quien navega con lector de pantalla
+            // o con teclado: esta accion lo deja al alcance de los dos.
+            .semantics(mergeDescendants = true) {
+                customActions = listOf(
+                    CustomAccessibilityAction("Eliminar lote") { onPedirBaja(lote); true }
+                )
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -407,6 +516,9 @@ private fun FilaLote(lote: LoteMaterial, unidad: String, diasAviso: Int) {
         )
         Text(
             when {
+                // Sin fecha: el material no caduca. Antes esto salia como
+                // "Caduca: " seguido de nada.
+                lote.caducidad.isBlank() -> "Sin caducidad"
                 vencido -> "⚠ Caducó: " + lote.caducidad
                 porCaducar -> "⚠ Caduca: " + lote.caducidad
                 else -> "Caduca: " + lote.caducidad

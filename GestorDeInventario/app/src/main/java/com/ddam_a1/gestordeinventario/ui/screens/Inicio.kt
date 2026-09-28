@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,8 +41,10 @@ import com.ddam_a1.gestordeinventario.ui.theme.tituloMedio
 fun PantallaInicio(
     avisos: Int,
     materialesBajos: Int,
+    productosBajos: Int,
     /** Materiales con al menos un lote cuya fecha ya paso. */
     materialesCaducados: Int,
+    productosCaducados: Int,
     totalMateriales: Int,
     totalProductos: Int,
     ultimasVentas: List<Venta>,
@@ -84,31 +87,16 @@ fun PantallaInicio(
         },
         pie = { BarraInferior(DestinoBarra.INICIO, onDestino) }
     ) {
-        if (materialesBajos > 0) {
-            item {
-                BannerAviso(
-                    // El numero va en el texto: el color rojo solo no dice
-                    // cuantos son, ni sirve a quien no lo distingue.
-                    if (materialesBajos == 1) "1 material con stock bajo"
-                    else "$materialesBajos materiales con stock bajo",
-                    onClick = onInventario
-                )
-            }
-        }
-
-        // Lo caducado va DEBAJO de lo que esta por acabarse, y no arriba, por
-        // orden de accion: el stock bajo se resuelve comprando hoy, lo caducado
-        // ya solo se retira. Cuenta MATERIALES y no lotes: tres lotes vencidos
-        // del mismo material son un solo viaje al almacen.
-        if (materialesCaducados > 0) {
-            item {
-                BannerAviso(
-                    if (materialesCaducados == 1) "1 material caducado"
-                    else "$materialesCaducados materiales caducados",
-                    onClick = onInventario
-                )
-            }
-        }
+        // Las cuatro franjas, en orden de que se puede hacer: primero lo que
+        // se resuelve comprando o produciendo hoy, despues lo que ya solo se
+        // retira. Salen todas las que apliquen aunque se junten: un dia con
+        // cuatro problemas es un dia con cuatro problemas, y esconder alguno
+        // para que la pantalla se vea limpia es esconderle al usuario su
+        // propio negocio.
+        franjaAviso(materialesBajos, "material con stock bajo", "materiales con stock bajo", onInventario)
+        franjaAviso(productosBajos, "producto con stock bajo", "productos con stock bajo", onCatalogo)
+        franjaAviso(materialesCaducados, "material caducado", "materiales caducados", onInventario)
+        franjaAviso(productosCaducados, "producto caducado", "productos caducados", onCatalogo)
 
         item {
             FilaPareja {
@@ -174,5 +162,27 @@ fun PantallaInicio(
                 )
             }
         }
+    }
+}
+
+/**
+ * Una franja roja, si hay algo que contar.
+ *
+ * El numero VA EN EL TEXTO: el color rojo por si solo no dice cuantos son, ni
+ * le sirve a quien no lo distingue. Y el singular va aparte del plural porque
+ * "1 materiales" se lee como un error de la aplicacion.
+ */
+private fun LazyListScope.franjaAviso(
+    cuantos: Int,
+    uno: String,
+    varios: String,
+    onClick: () -> Unit
+) {
+    if (cuantos <= 0) return
+    item {
+        BannerAviso(
+            if (cuantos == 1) "1 " + uno else cuantos.toString() + " " + varios,
+            onClick = onClick
+        )
     }
 }

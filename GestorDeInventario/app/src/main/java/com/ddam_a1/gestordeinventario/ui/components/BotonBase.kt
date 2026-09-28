@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.Medidas
@@ -121,14 +122,23 @@ internal fun BotonBase(
                 interactionSource = interacciones,
                 indication = null      // el cambio de color YA es la respuesta al toque
             ) { onClick() }
-            .padding(horizontal = Margenes.xxl),
+            // 16 y no 32 de relleno lateral: en un boton de ancho completo
+            // da igual, porque el texto va centrado y le sobra sitio, pero en
+            // una pareja de botones a medio renglon esos 32 por lado se comen
+            // 64 de los 150 que hay.
+            .padding(horizontal = Margenes.lg),
         contentAlignment = Alignment.Center
     ) {
         Text(
             texto,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
             color = contenido,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            // Un renglon y punto: el boton tiene ALTO FIJO, asi que un texto
+            // que se parte en dos no crece la caja, se sale de ella y se corta
+            // por la mitad de las letras.
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

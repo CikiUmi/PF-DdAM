@@ -126,7 +126,14 @@ fun TarjetaProductoRejilla(
                 diasParaCaducar == 0 -> "Caduca hoy"
                 else -> "Caduca " + diasParaCaducar + " d"
             }
-            Pastilla(aviso, cs.errorContainer, cs.onErrorContainer, Iconos.Calendario)
+            // Rojo solo cuando ya caduco. Mientras todavia da tiempo va en el
+            // rosa de `tertiaryContainer`, el mismo de "Bajo pedido": si todo
+            // lo que preocupa fuera rojo, el rojo dejaria de significar algo.
+            if (diasParaCaducar < 0) {
+                Pastilla(aviso, cs.errorContainer, cs.onErrorContainer, Iconos.Alerta)
+            } else {
+                Pastilla(aviso, cs.tertiaryContainer, cs.onTertiaryContainer, Iconos.CalendarioReloj)
+            }
         } else {
             Pastilla(
                 stock.toString() + " en stock",

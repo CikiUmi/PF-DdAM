@@ -131,7 +131,7 @@ fun PantallaReceta(
                         Modifier.widthIn(max = Anchos.tarjetaAncha),
                         verticalArrangement = Arrangement.spacedBy(Margenes.lg)
                     ) {
-                        if (esProductoNuevo) BarraPasos(paso = 2, total = 2)
+                        if (esProductoNuevo) BarraPasos(paso = 2, total = 2, centrado = true)
 
                         Etiqueta("Seleccionar materiales requeridos")
 

@@ -54,6 +54,15 @@ fun FilaTarjeta(
     tintaIcono: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     colorTitulo: Color = MaterialTheme.colorScheme.onSurface,
     onClick: (() -> Unit)? = null,
+    /**
+     * Lo que va DEBAJO del subtitulo, dentro de la columna de texto.
+     *
+     * Existe para las pastillas de estado. En `accion`, que es la orilla
+     * derecha, no caben: en un telefono de 360 quedan unos 288 de fila, y
+     * entre el icono, la pastilla y el boton no le sobrarian ni 50 al nombre.
+     * Aqui abajo tienen el ancho de la columna entera.
+     */
+    debajo: (@Composable () -> Unit)? = null,
     accion: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -100,6 +109,9 @@ fun FilaTarjeta(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            if (debajo != null) {
+                Box(Modifier.padding(top = Margenes.xs)) { debajo() }
             }
         }
 

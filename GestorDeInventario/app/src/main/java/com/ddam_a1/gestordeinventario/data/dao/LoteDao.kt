@@ -28,6 +28,18 @@ interface LoteDao {
     @Query("SELECT * FROM lotes WHERE material_id = :materialId ORDER BY caducidad ASC")
     suspend fun lotesDe(materialId: String): List<LoteMaterial>
 
+    @Query("SELECT * FROM lotes WHERE _id = :loteId")
+    suspend fun leer(loteId: String): LoteMaterial?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun agregar(lote: LoteMaterial)
+
+    /**
+     * Borra un lote. Devuelve cuantos renglones se fueron: 0 si ya no estaba.
+     *
+     * Quien llama tiene que ocuparse ademas de la existencia del material, que
+     * vive en otra tabla y no se entera de esto.
+     */
+    @Query("DELETE FROM lotes WHERE _id = :loteId")
+    suspend fun eliminar(loteId: String): Int
 }

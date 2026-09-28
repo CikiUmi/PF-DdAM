@@ -23,6 +23,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
@@ -36,29 +38,48 @@ data class PorcionDona(val etiqueta: String, val valor: Double, val color: Color
 // ============================================================
 //  DONA CON LEYENDA  (Figma 41:849)
 //
-//  Tarjeta `surfaceContainer` radio 24: dona de 110 a la izquierda con el
-//  total al centro, y a la derecha el titulo y la leyenda.
+//  Tarjeta `surfaceContainer` radio 24 y relleno de 24 —no 16 como el resto,
+//  el diseno lo pide asi—: a la izquierda el titulo, el total y la leyenda; a
+//  la derecha la dona de 110.
 //
-//  El porcentaje va en el TEXTO de la leyenda, no solo en el tamaño del arco.
+//  EL TOTAL VA EN LA LEYENDA, NO DENTRO DEL ANILLO. Al centro solo cabe una
+//  cifra corta ("$1.3k"): "$1,314.00" se sale del hueco y se encima con el
+//  arco. La cifra exacta esta a un renglon de distancia, en "TOTAL: ...".
+//
+//  El porcentaje va en el TEXTO de la leyenda, no solo en el tamano del arco.
 //  Una dona sin cifras obliga a estimar a ojo, y a quien no distingue los dos
 //  colores no le dice nada.
+//
+//  CUANDO UNA PORCION ES NEGATIVA —el negocio perdio dinero— la dona deja de
+//  ser un reparto: no existe el 171% de un pastel, ni un arco de -71 grados.
+//  Ahi el anillo ensena solo lo que si es positivo y la leyenda cambia de
+//  porcentajes a IMPORTES, con el negativo en rojo. Es la diferencia entre
+//  ensenar un dato incomodo y ensenar un dato falso.
 // ============================================================
 
 @Composable
 fun GraficaDona(
     titulo: String,
     porciones: List<PorcionDona>,
+    /** El importe completo, para el renglon "TOTAL: ...". */
     totalTexto: String,
+    /** El mismo importe, abreviado, para el centro del anillo. */
+    totalCorto: String,
+    formatearValor: (Double) -> String,
     modifier: Modifier = Modifier,
     /** 110 en telefono, 130 en tableta (Figma 84:4784). */
     diametro: Dp = 110.dp,
     /**
-     * Si se pasa, la leyenda agrega el importe: "Ganancia (63%) — $28,400".
+     * Agrega el importe a cada renglon de la leyenda: "Ganancia (63%) — $28,400".
      * Solo en pantallas anchas; en telefono no cabe y se corta.
      */
-    formatearValor: ((Double) -> String)? = null
+    conImportes: Boolean = false
 ) {
-    val total = porciones.sumOf { it.valor }.coerceAtLeast(0.0001)
+    val hayNegativos = porciones.any { it.valor < 0.0 }
+    // El reparto se calcula SOLO sobre lo positivo: es lo unico que se puede
+    // dibujar como arco.
+    val sumaPositiva = porciones.filter { it.valor > 0.0 }.sumOf { it.valor }
+        .coerceAtLeast(0.0001)
 
     Row(
         modifier
@@ -72,10 +93,62 @@ fun GraficaDona(
                 MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(Radios.dialogo)
             )
-            .padding(Margenes.lg),
+            .padding(Margenes.xl),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
     ) {
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Margenes.sm)
+        ) {
+            Text(
+                titulo,
+                style = MaterialTheme.typography.tituloMedio,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                "TOTAL: " + totalTexto,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            porciones.forEach { porcion ->
+                val negativa = porcion.valor < 0.0
+                val porcentaje = (porcion.valor / sumaPositiva * 100).toInt()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Margenes.sm)
+                ) {
+                    Box(
+                        Modifier
+                            .clearAndSetSemantics { }
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (negativa) MaterialTheme.colorScheme.error
+                                else porcion.color
+                            )
+                    )
+                    Text(
+                        when {
+                            // Con una porcion negativa, NINGUNA lleva
+                            // porcentaje: el de al lado seria un 100% que no
+                            // significa nada.
+                            hayNegativos -> porcion.etiqueta + ": " + formatearValor(porcion.valor)
+                            conImportes ->
+                                porcion.etiqueta + " (" + porcentaje + "%) — " +
+                                    formatearValor(porcion.valor)
+                            else -> porcion.etiqueta + " (" + porcentaje + "%)"
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (negativa) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
         Box(Modifier.size(diametro), contentAlignment = Alignment.Center) {
             val vacia = MaterialTheme.colorScheme.surfaceContainerHigh
             Canvas(
@@ -93,8 +166,10 @@ fun GraficaDona(
                     style = androidx.compose.ui.graphics.drawscope.Stroke(grosor)
                 )
                 var inicio = -90f
-                porciones.forEach { porcion ->
-                    val barrido = (porcion.valor / total * 360.0).toFloat()
+                // Solo lo positivo: un barrido negativo dibuja el arco hacia
+                // atras y pinta encima del anterior.
+                porciones.filter { it.valor > 0.0 }.forEach { porcion ->
+                    val barrido = (porcion.valor / sumaPositiva * 360.0).toFloat()
                     drawArc(
                         color = porcion.color, startAngle = inicio, sweepAngle = barrido,
                         useCenter = false, topLeft = esquina, size = medida,
@@ -108,47 +183,16 @@ fun GraficaDona(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    totalTexto,
+                    totalCorto,
                     style = MaterialTheme.typography.tituloMedio,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
                 )
                 Text(
-                    "TOTAL",
+                    "MXN",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-
-        Column(
-            Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Margenes.sm)
-        ) {
-            Text(
-                titulo,
-                style = MaterialTheme.typography.tituloMedio,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            porciones.forEach { porcion ->
-                val porcentaje = (porcion.valor / total * 100).toInt()
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Margenes.sm)
-                ) {
-                    Box(
-                        Modifier
-                            .clearAndSetSemantics { }
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(porcion.color)
-                    )
-                    Text(
-                        porcion.etiqueta + " (" + porcentaje + "%)" +
-                            (formatearValor?.let { " — " + it(porcion.valor) } ?: ""),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

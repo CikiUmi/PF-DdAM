@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
+import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 
 // ============================================================
 //  PASTILLA  (Figma 48:1418, 48:1511, 48:1671, 43:811)
@@ -62,6 +63,46 @@ fun Pastilla(
             texto,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
             color = contenido
+        )
+    }
+}
+
+// ============================================================
+//  LA PASTILLA DE ESTADO DEL INVENTARIO
+//
+//  Lo que le puede pasar a un material o a un producto y hay que atender hoy.
+//  Vive aqui y no en cada pantalla porque sale en cuatro sitios —inventario,
+//  catalogo, avisos y detalle— y ya se habia escrito tres veces con textos y
+//  colores distintos. Un mismo problema tiene que verse igual en todas, o el
+//  usuario aprende cuatro lenguajes en vez de uno.
+//
+//  El estado y su texto son los de `EstadoInventario`, en ChipEstado.kt. Esta
+//  es la version con icono; aquella es la del punto de color.
+//
+//  POR CADUCAR va en `tertiaryContainer`, el mismo rosa de "Bajo pedido", y no
+//  en rojo: todavia da tiempo. El rojo se guarda para lo que ya no tiene
+//  arreglo —lo caducado— y para lo que deja de venderse —el stock bajo—, asi
+//  que cuando aparece, significa algo.
+// ============================================================
+
+@Composable
+fun PastillaEstado(estado: EstadoInventario, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val correcto = MaterialTheme.coloresExtra.correct
+    when (estado) {
+        EstadoInventario.DISPONIBLE -> Pastilla(
+            estado.etiqueta, correcto.colorContainer, correcto.onColorContainer,
+            Iconos.Check, modifier
+        )
+        EstadoInventario.STOCK_BAJO -> Pastilla(
+            estado.etiqueta, cs.errorContainer, cs.onErrorContainer, Iconos.CajaMenos, modifier
+        )
+        EstadoInventario.POR_CADUCAR -> Pastilla(
+            estado.etiqueta, cs.tertiaryContainer, cs.onTertiaryContainer,
+            Iconos.CalendarioReloj, modifier
+        )
+        EstadoInventario.CADUCADO -> Pastilla(
+            estado.etiqueta, cs.errorContainer, cs.onErrorContainer, Iconos.Alerta, modifier
         )
     }
 }

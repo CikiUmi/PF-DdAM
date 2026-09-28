@@ -64,6 +64,11 @@ fun TarjetaMetrica(
      * cortarlo cambiaria lo que dice.
      */
     maxLineasCifra: Int = 1,
+    /**
+     * Color de la cifra. Por omision el de siempre; se cambia cuando el
+     * numero dice lo contrario de su etiqueta, como una "Ganancia" negativa.
+     */
+    colorValor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: (() -> Unit)? = null
 ) {
     Column(
@@ -93,7 +98,7 @@ fun TarjetaMetrica(
             style =
                 if (compacta) MaterialTheme.typography.tituloMedio        // Lora 20
                 else MaterialTheme.typography.headlineMedium,             // Lora 28
-            color = MaterialTheme.colorScheme.onSurface,
+            color = colorValor,
             maxLines = maxLineasCifra,
             overflow = TextOverflow.Ellipsis
         )

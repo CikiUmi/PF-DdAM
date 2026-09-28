@@ -12,5 +12,10 @@ data class DatosMaterial(
     val cantidad: Double,
     val costo: Double,
     val stockMinimo: Double,
-    val diasAvisoCaducidad: Int
+    val diasAvisoCaducidad: Int,
+    /**
+     * Cuando caduca el lote inicial, "aaaa-mm-dd". Vacio si el material no
+     * caduca o si se guardo sin lote inicial.
+     */
+    val caducidadInicial: String = ""
 )

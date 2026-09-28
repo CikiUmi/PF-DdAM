@@ -25,6 +25,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.Aviso
+import com.ddam_a1.gestordeinventario.ui.components.EstadoInventario
+import com.ddam_a1.gestordeinventario.ui.components.PastillaEstado
+import com.ddam_a1.gestordeinventario.modelClasses.TipoAviso
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonIcono
 import com.ddam_a1.gestordeinventario.ui.components.BotonSecundario
@@ -89,11 +92,15 @@ fun PantallaAvisos(
 
                     Seccion("Por caducar", porCaducar.size) {
                         if (porCaducar.isEmpty()) {
-                            SinAvisos("Ningún lote está próximo a caducar.")
+                            SinAvisos("Nada por caducar ni caducado.")
                         } else {
                             porCaducar.forEach { aviso ->
+                                val vencido = aviso.tipo == TipoAviso.CADUCADO ||
+                                    aviso.tipo == TipoAviso.CADUCADO_PRODUCTO
                                 AvisoPendiente(
-                                    aviso, Iconos.CalendarioReloj, onAviso, onMarcarLeido
+                                    aviso,
+                                    if (vencido) Iconos.Alerta else Iconos.CalendarioReloj,
+                                    onAviso, onMarcarLeido
                                 )
                             }
                         }
@@ -154,6 +161,30 @@ private fun Seccion(titulo: String, cuantos: Int, contenido: @Composable () -> U
     }
 }
 
+// ============================================================
+//  LA PASTILLA DE ESTADO
+//
+//  La misma del catalogo, con el texto cambiado. Sin ella los renglones de una
+//  seccion se ven todos iguales y hay que leer la fecha del mensaje y hacer la
+//  cuenta para saber si algo ya se paso o todavia da tiempo.
+//
+//  El mensaje dice CUANDO ("Caducó el 30 de marzo") y la pastilla dice QUE
+//  ("Caducado"). Son dos cosas distintas y por eso no sobra ninguna: la fecha
+//  sirve para decidir, la palabra para reconocer de un vistazo.
+// ============================================================
+
+@Composable
+private fun PastillaDeAviso(tipo: TipoAviso) {
+    when (tipo) {
+        TipoAviso.STOCK_BAJO_MATERIAL,
+        TipoAviso.STOCK_BAJO_PRODUCTO -> PastillaEstado(EstadoInventario.STOCK_BAJO)
+        TipoAviso.CADUCIDAD,
+        TipoAviso.CADUCIDAD_PRODUCTO -> PastillaEstado(EstadoInventario.POR_CADUCAR)
+        TipoAviso.CADUCADO,
+        TipoAviso.CADUCADO_PRODUCTO -> PastillaEstado(EstadoInventario.CADUCADO)
+    }
+}
+
 @Composable
 private fun AvisoPendiente(
     aviso: Aviso,
@@ -167,7 +198,8 @@ private fun AvisoPendiente(
         subtitulo = aviso.mensaje,
         fondoIcono = MaterialTheme.colorScheme.tertiaryContainer,
         tintaIcono = MaterialTheme.colorScheme.onTertiaryContainer,
-        onClick = { onAviso(aviso) }
+        onClick = { onAviso(aviso) },
+        debajo = { PastillaDeAviso(aviso.tipo) }
     ) {
         BotonIcono(Iconos.Cerrar, "Marcar como leído", { onMarcarLeido(aviso) })
     }
@@ -182,7 +214,10 @@ private fun AvisoLeido(aviso: Aviso, onAviso: (Aviso) -> Unit) {
         fondoIcono = MaterialTheme.coloresExtra.correct.colorContainer,
         tintaIcono = MaterialTheme.coloresExtra.correct.onColorContainer,
         colorTitulo = MaterialTheme.colorScheme.onSurfaceVariant,
-        onClick = { onAviso(aviso) }
+        onClick = { onAviso(aviso) },
+        // Tambien en los leidos: la seccion mezcla los tres motivos y sin la
+        // pastilla no hay forma de saber de que era cada uno.
+        debajo = { PastillaDeAviso(aviso.tipo) }
     )
 }
 

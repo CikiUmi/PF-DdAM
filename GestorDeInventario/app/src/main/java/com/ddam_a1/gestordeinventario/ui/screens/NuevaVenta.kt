@@ -296,52 +296,59 @@ private fun FilaProductoVenta(
     val correcto = MaterialTheme.coloresExtra.correct
     val sinStock = !producto.esBajoPedido && producto.stockDisponible <= 0
 
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Radios.campo))
             .background(cs.surfaceContainerHigh)
             .padding(Margenes.md)
             .semantics(mergeDescendants = true) { },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+        verticalArrangement = Arrangement.spacedBy(Margenes.sm)
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                producto.nombre,
-                style = MaterialTheme.typography.tituloMedio,
-                color = cs.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        // LA PASTILLA, EN SU PROPIO RENGLON Y ARRIBA DE TODO.
+        //
+        // Antes compartia renglon con el precio, y ese renglon compartia ancho
+        // con los botones de mas y menos: a "Bajo pedido" le quedaban unos 90
+        // y se partia en dos ("Bajo / pedido"), empujando la tarjeta hacia
+        // abajo y dejando cada una de un alto distinto.
+        //
+        // Arriba y no abajo porque es lo que decide si este renglon se puede
+        // tocar: antes de sumar piezas hay que saber si hay de donde. Puesta
+        // debajo del precio se lee DESPUES de haber decidido.
+        if (producto.esBajoPedido) {
+            Pastilla("Bajo pedido", cs.tertiaryContainer, cs.onTertiaryContainer, Iconos.Reloj)
+        } else if (sinStock) {
+            Pastilla("Sin stock", cs.errorContainer, cs.onErrorContainer, Iconos.Alerta)
+        } else {
+            Pastilla(
+                producto.stockDisponible.toString() + " en stock",
+                correcto.colorContainer, correcto.onColorContainer, Iconos.Check
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Margenes.sm)
-            ) {
+        }
+
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Margenes.md)
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    producto.nombre,
+                    style = MaterialTheme.typography.tituloMedio,
+                    color = cs.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(
                     dinero(producto.precioVenta),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = cs.onSurfaceVariant
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                if (producto.esBajoPedido) {
-                    Pastilla(
-                        "Bajo pedido",
-                        cs.tertiaryContainer, cs.onTertiaryContainer, Iconos.Reloj
-                    )
-                } else if (sinStock) {
-                    Pastilla(
-                        "Sin stock",
-                        cs.errorContainer, cs.onErrorContainer, Iconos.Alerta
-                    )
-                } else {
-                    Pastilla(
-                        producto.stockDisponible.toString() + " en stock",
-                        correcto.colorContainer, correcto.onColorContainer, Iconos.Check
-                    )
-                }
             }
+            Contador(cantidad, onMenos = onMenos, onMas = onMas)
         }
-        Contador(cantidad, onMenos = onMenos, onMas = onMas)
     }
 }
 

@@ -1,5 +1,7 @@
 package com.ddam_a1.gestordeinventario.ui
 
+import com.ddam_a1.gestordeinventario.modelClasses.enums.Periodo
+
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -48,19 +50,113 @@ fun diasHasta(fecha: String, desde: String = hoy()): Int? {
     return ((b.time - a.time) / (1000L * 60 * 60 * 24)).toInt()
 }
 
+// ============================================================
+//  IMPORTES CORTOS
+//
+//  "$1,571.09" son once caracteres. Al centro de una dona de 110 no caben, y
+//  el texto se sale del anillo y se encima con el arco.
+//
+//  Aqui se pierde precision A PROPOSITO, y solo donde el hueco manda: la cifra
+//  exacta sigue estando al lado, en la leyenda. Redondear al millar es lo que
+//  hace cualquiera al leer en voz alta: "mil quinientos y algo".
+// ============================================================
+
+fun dineroCorto(v: Double): String {
+    val signo = if (v < 0) "-" else ""
+    val abs = kotlin.math.abs(v)
+    return when {
+        abs >= 1_000_000 -> signo + "$" + String.format(Locale.getDefault(), "%.1fM", abs / 1_000_000)
+        abs >= 10_000 -> signo + "$" + String.format(Locale.getDefault(), "%.0fk", abs / 1_000)
+        abs >= 1_000 -> signo + "$" + String.format(Locale.getDefault(), "%.1fk", abs / 1_000)
+        else -> signo + "$" + String.format(Locale.getDefault(), "%.0f", abs)
+    }
+}
+
+// ============================================================
+//  LAS BARRAS, SEGUN EL PERIODO QUE SE ESTE MIRANDO
+//
+//  El eje tiene que medir lo mismo que el filtro. Siete dias de la semana
+//  puestos bajo el chip "Hoy" no dicen nada: seis de esas columnas son de
+//  dias que el usuario no esta mirando, y la unica que importa queda sola.
+//  Bajo "Mes" es al reves: cuatro semanas amontonadas en siete columnas
+//  suman lunes de semanas distintas como si fueran el mismo dia.
+//
+//    DIARIO   seis tramos de cuatro horas. Veinticuatro columnas no caben en
+//             un telefono, y a nadie le importa la diferencia entre las 3 y
+//             las 4 de la manana.
+//    SEMANAL  los siete dias, de lunes a domingo.
+//    MENSUAL  las cinco semanas que puede tener un mes.
+//
+//  En los tres casos se devuelven TODAS las columnas aunque esten en cero: una
+//  grafica que cambia de forma segun el dato se lee mal, porque el eje deja de
+//  ser una referencia fija.
+// ============================================================
+
+/** El titulo de la grafica, que tambien tiene que decir en que unidad va. */
+fun tituloDeVentas(periodo: Periodo): String = when (periodo) {
+    Periodo.DIARIO -> "Ventas por hora"
+    Periodo.SEMANAL -> "Ventas por día"
+    Periodo.MENSUAL -> "Ventas por semana"
+}
+
+fun <T> ventasPorPeriodo(
+    periodo: Periodo,
+    elementos: List<T>,
+    /** Sin valor por omision a proposito: un default aqui se equivocaria en silencio. */
+    fechaDe: (T) -> String,
+    /** "HH:mm". Vacia en las ventas viejas, que caen en el primer tramo. */
+    horaDe: (T) -> String,
+    valorDe: (T) -> Double
+): List<Pair<String, Double>> = when (periodo) {
+    Periodo.DIARIO -> porTramoDeHoras(elementos, horaDe, valorDe)
+    Periodo.SEMANAL -> ventasPorDiaDeLaSemana(elementos, fechaDe, valorDe)
+    Periodo.MENSUAL -> porSemanaDelMes(elementos, fechaDe, valorDe)
+}
+
+private fun <T> porTramoDeHoras(
+    elementos: List<T>,
+    horaDe: (T) -> String,
+    valorDe: (T) -> Double
+): List<Pair<String, Double>> {
+    val etiquetas = listOf("0-4", "4-8", "8-12", "12-16", "16-20", "20-24")
+    val acumulado = DoubleArray(6)
+    for (e in elementos) {
+        // "14:35" -> 14. Una venta sin hora (las de antes de que se guardara)
+        // cae en el primer tramo; es preferible a descartarla del total.
+        val hora = horaDe(e).substringBefore(":").toIntOrNull() ?: 0
+        val tramo = (hora / 4).coerceIn(0, 5)
+        acumulado[tramo] += valorDe(e)
+    }
+    return etiquetas.mapIndexed { i, t -> t to acumulado[i] }
+}
+
+private fun <T> porSemanaDelMes(
+    elementos: List<T>,
+    fechaDe: (T) -> String,
+    valorDe: (T) -> Double
+): List<Pair<String, Double>> {
+    val etiquetas = listOf("S1", "S2", "S3", "S4", "S5")
+    val acumulado = DoubleArray(5)
+    for (e in elementos) {
+        // El dia del mes sale del texto "aaaa-mm-dd" sin parsear la fecha:
+        // los dias 1 a 7 son la semana 1, el 8 al 14 la 2, y asi.
+        val dia = fechaDe(e).substringAfterLast("-").toIntOrNull() ?: continue
+        val semana = ((dia - 1) / 7).coerceIn(0, 4)
+        acumulado[semana] += valorDe(e)
+    }
+    return etiquetas.mapIndexed { i, t -> t to acumulado[i] }
+}
+
 /**
  * Agrupa por dia de la semana para la grafica de barras.
  *
- * Devuelve SIEMPRE los siete dias, aunque alguno no tenga ventas: una grafica
- * a la que le faltan columnas segun el dato se lee mal, porque el eje cambia
- * de forma cada vez.
+ * Devuelve SIEMPRE los siete dias, aunque alguno no tenga ventas.
  *
  * Las fechas son "aaaa-mm-dd" (por eso ordenar alfabeticamente ya es ordenar
  * por fecha); aqui se convierten para saber en que dia cayeron.
  */
 fun <T> ventasPorDiaDeLaSemana(
     elementos: List<T>,
-    /** Sin valor por omision a proposito: un default aqui se equivocaria en silencio. */
     fechaDe: (T) -> String,
     valorDe: (T) -> Double
 ): List<Pair<String, Double>> {

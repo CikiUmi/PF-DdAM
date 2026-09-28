@@ -44,6 +44,7 @@ import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.PanelLateral
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaMetrica
 import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.tituloDeVentas
 import com.ddam_a1.gestordeinventario.ui.fechaYHora
 import com.ddam_a1.gestordeinventario.ui.folioDe
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
@@ -117,7 +118,7 @@ private fun VentasConBarra(
         barra = { BarraSuperior("Ventas", ventas.size.toString() + " en el periodo") },
         pie = { BarraInferior(DestinoBarra.VENTAS, onDestino) }
     ) {
-        item { GraficaBarras("Ventas por día", ventasPorDia, formatearValor = { dinero(it) }) }
+        item { GraficaBarras(tituloDeVentas(periodo), ventasPorDia, formatearValor = { dinero(it) }) }
         item { SelectorPeriodoVentas(periodo, onPeriodo) }
         item { CifrasVentas(ingresos, ganancias) }
         item { TituloHistorial() }
@@ -162,7 +163,7 @@ private fun VentasConPanel(
                     BotonPrincipal("Nueva venta", onClick = onNuevaVenta)
                 }
 
-                GraficaBarras("Ventas por día", ventasPorDia, formatearValor = { dinero(it) })
+                GraficaBarras(tituloDeVentas(periodo), ventasPorDia, formatearValor = { dinero(it) })
                 SelectorPeriodoVentas(periodo, onPeriodo)
                 CifrasVentas(ingresos, ganancias)
                 TituloHistorial()
@@ -192,6 +193,11 @@ private fun SelectorPeriodoVentas(periodo: Periodo, onPeriodo: (Periodo) -> Unit
 
 @Composable
 private fun CifrasVentas(ingresos: Double, ganancias: Double) {
+    // Una ganancia negativa cambia la rayita y la cifra a rojo. La rayita sola
+    // no bastaria —mide 4 de alto y es decorativa para el lector de pantalla—,
+    // y la cifra sola obliga a cazar un signo menos de dos pixeles. Las dos
+    // juntas se ven antes de leer el numero.
+    val enPerdida = ganancias < 0.0
     // "Ingresos" puede traer nota y "Ganancia" no: FilaPareja las deja iguales.
     FilaPareja {
         TarjetaMetrica(
@@ -201,10 +207,13 @@ private fun CifrasVentas(ingresos: Double, ganancias: Double) {
             compacta = true, maxLineasCifra = 2
         )
         TarjetaMetrica(
-            "Ganancia", dinero(ganancias), null,
-            colorAcento = MaterialTheme.coloresExtra.correct.color,
+            if (enPerdida) "Pérdida" else "Ganancia", dinero(ganancias), null,
+            colorAcento = if (enPerdida) MaterialTheme.colorScheme.error
+            else MaterialTheme.coloresExtra.correct.color,
             modifier = Modifier.weight(1f).fillMaxHeight(),
-            compacta = true, maxLineasCifra = 2
+            compacta = true, maxLineasCifra = 2,
+            colorValor = if (enPerdida) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurface
         )
     }
 }

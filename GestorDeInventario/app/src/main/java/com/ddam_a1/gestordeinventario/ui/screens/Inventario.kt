@@ -40,6 +40,9 @@ import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
 import com.ddam_a1.gestordeinventario.ui.components.FilaChips
+import com.ddam_a1.gestordeinventario.ui.diasHasta
+import com.ddam_a1.gestordeinventario.ui.components.PastillaEstado
+import com.ddam_a1.gestordeinventario.ui.components.EstadoInventario
 import com.ddam_a1.gestordeinventario.ui.components.DestinoBarra
 import com.ddam_a1.gestordeinventario.ui.components.EstadoVacio
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
@@ -239,23 +242,45 @@ private fun FilaFiltros(filtro: FiltroInv, onFiltro: (FiltroInv) -> Unit) {
     }
 }
 
-/** El subtitulo de una tarjeta: precio unitario y, si toca, el aviso. */
+// ============================================================
+//  QUE LE PASA A UN MATERIAL
+//
+//  El mismo calculo que usan los avisos y las notificaciones. Se escribe una
+//  vez y lo comparten la tarjeta del telefono y el renglon de la tableta: si
+//  cada uno decidiera por su cuenta, una pantalla podria ensenar en rosa lo
+//  que la otra ensena en rojo.
+//
+//  Un material puede tener VARIAS cosas a la vez —estar bajo de stock y ademas
+//  con un lote vencido— y entonces salen las dos pastillas. Esconder una para
+//  que la fila se vea limpia seria esconderle medio problema al usuario.
+// ============================================================
+
+private fun estadosDe(m: Material, bajo: Boolean): List<EstadoInventario> {
+    val estados = mutableListOf<EstadoInventario>()
+    if (bajo) estados.add(EstadoInventario.STOCK_BAJO)
+    if (m.diasAvisoCaducidad > 0) {
+        val dias = m.lotes.mapNotNull { diasHasta(it.caducidad) }
+        if (dias.any { it < 0 }) estados.add(EstadoInventario.CADUCADO)
+        else if (dias.any { it <= m.diasAvisoCaducidad }) estados.add(EstadoInventario.POR_CADUCAR)
+    }
+    return estados
+}
+
+/** El subtitulo de una tarjeta: precio unitario y, si toca, las pastillas. */
 @Composable
 private fun MaterialTarjeta(
     m: Material,
     esStockBajo: (Material) -> Boolean,
     onMaterial: (String) -> Unit
 ) {
-    val bajo = esStockBajo(m)
+    val estados = estadosDe(m, esStockBajo(m))
     FilaLista(
         modifier = Modifier.fillMaxHeight(),
         titulo = m.nombre,
         subtitulo = dinero(m.costoUnitario) + " / " + m.unidadMedida,
         valor = cant(m.cantidadDisponible) + " " + m.unidadMedida,
-        // Con la cantidad dentro del aviso: "Stock bajo" a secas obliga a
-        // buscar el numero al otro lado de la tarjeta.
-        alerta = if (bajo) "⚠ Stock bajo (" + cant(m.cantidadDisponible) + " " +
-            m.unidadMedida + ")" else null
+        pastillas = if (estados.isEmpty()) null
+        else ({ estados.forEach { PastillaEstado(it) } })
     ) { onMaterial(m.id) }
 }
 
@@ -321,19 +346,22 @@ private fun RenglonTabla(
             maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(COL_COSTO)
         )
-        Box(Modifier.weight(COL_ESTADO)) {
-            if (bajo) {
+        Row(
+            Modifier.weight(COL_ESTADO),
+            horizontalArrangement = Arrangement.spacedBy(Margenes.xs)
+        ) {
+            val estados = estadosDe(m, bajo)
+            if (estados.isEmpty()) {
+                // En la tabla la columna existe siempre, asi que cuando no hay
+                // nada que decir se dice que no hay nada: una celda en blanco
+                // se lee como un dato que falta.
                 Text(
-                    "⚠ Stock bajo",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.error
-                )
-            } else if (m.lotes.isNotEmpty()) {
-                Text(
-                    "Caduca " + m.lotes.minOf { it.caducidad },
+                    "En orden",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            } else {
+                estados.forEach { PastillaEstado(it) }
             }
         }
         Text(

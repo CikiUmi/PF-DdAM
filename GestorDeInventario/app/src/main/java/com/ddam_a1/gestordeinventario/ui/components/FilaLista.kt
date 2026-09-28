@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -50,6 +51,13 @@ fun FilaLista(
     colorPunto: Color? = null,
     /** Aviso corto en rojo junto al subtitulo, p. ej. "Stock bajo". */
     alerta: String? = null,
+    /**
+     * Pastillas de estado, debajo del subtitulo.
+     *
+     * Debajo y no al lado: a la derecha esta la cantidad, y en un telefono de
+     * 360 no caben dos pastillas y un numero en el mismo renglon.
+     */
+    pastillas: (@Composable RowScope.() -> Unit)? = null,
     /** Va antes de onClick para no romper la lambda final de quien ya la usa. */
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
@@ -110,6 +118,13 @@ fun FilaLista(
                         )
                     }
                 }
+            }
+            if (pastillas != null) {
+                Row(
+                    Modifier.padding(top = Margenes.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Margenes.xs),
+                    content = pastillas
+                )
             }
         }
 

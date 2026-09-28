@@ -60,10 +60,33 @@ interface InventarioRepositorio {
 
     // ---------- MATERIALES ----------
 
-    suspend fun agregarMaterial(nombre: String, unidad: String, costo: Double, cantidad: Double): Material
+    /**
+     * Da de alta un material. Si `cantidad` es mayor que cero, esa cantidad
+     * entra como su PRIMER LOTE, con `caducidadInicial` de fecha (vacia si el
+     * material no caduca).
+     */
+    suspend fun agregarMaterial(
+        nombre: String,
+        unidad: String,
+        costo: Double,
+        cantidad: Double,
+        caducidadInicial: String = ""
+    ): Material
     suspend fun editarMaterial(id: String, nombre: String? = null, costo: Double? = null): Boolean
     suspend fun eliminarMaterial(id: String): Boolean
+    /**
+     * Registra un lote. `fecha` vacia significa que el material no caduca:
+     * el lote existe igual, porque es el registro de lo que entro.
+     */
     suspend fun agregarLote(materialId: String, cantidad: Double, fecha: String): Boolean
+
+    /**
+     * Borra un lote y descuenta su cantidad de la existencia del material.
+     *
+     * Borrar un lote no es corregir un dato: es decir "esto ya no esta en el
+     * almacen", y lo que no esta no puede seguir contando como disponible.
+     */
+    suspend fun eliminarLote(loteId: String): Boolean
     suspend fun definirStockMinimo(materialId: String, minimo: Double): Boolean
     suspend fun definirDiasAvisoCaducidad(materialId: String, dias: Int): Boolean
 

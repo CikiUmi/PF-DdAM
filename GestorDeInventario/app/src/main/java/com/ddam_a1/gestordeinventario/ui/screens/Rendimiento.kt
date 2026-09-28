@@ -37,6 +37,8 @@ import com.ddam_a1.gestordeinventario.ui.components.PorcionDona
 import com.ddam_a1.gestordeinventario.ui.components.SelectorPestanas
 import com.ddam_a1.gestordeinventario.ui.components.TarjetaCifra
 import com.ddam_a1.gestordeinventario.ui.dinero
+import com.ddam_a1.gestordeinventario.ui.tituloDeVentas
+import com.ddam_a1.gestordeinventario.ui.dineroCorto
 import com.ddam_a1.gestordeinventario.ui.theme.AnchoPantalla
 import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 import com.ddam_a1.gestordeinventario.ui.theme.anchoPantallaDe
@@ -122,7 +124,7 @@ private fun RendimientoUnaColumna(
         // es lo que separa una seccion de la siguiente en el diseno.
         item { Spacer(Modifier.height(Margenes.md)) }
 
-        item { GraficaBarras("Ventas por día", ventasPorDia) }
+        item { GraficaBarras(tituloDeVentas(periodo), ventasPorDia) }
 
 
         if (anchaDeSobra) {
@@ -224,7 +226,7 @@ private fun RendimientoDosColumnas(
                     verticalArrangement = Arrangement.spacedBy(Margenes.xl)
                 ) {
                     SelectorPeriodo(periodo, onPeriodo)
-                    GraficaBarras("Ventas por día", ventasPorDia)
+                    GraficaBarras(tituloDeVentas(periodo), ventasPorDia)
                     Dona(ingresos, ganancia, costo, conImportes = true)
                     FilaPareja(separacion = Margenes.lg) {
                         CifrasEnFila(ganancia, costo, perdidas, etiquetasLargas = true)
@@ -283,14 +285,16 @@ private fun Dona(
     GraficaDona(
         titulo = "Distribución",
         totalTexto = dinero(ingresos),
+        totalCorto = dineroCorto(ingresos),
         porciones = listOf(
             PorcionDona("Ganancia", ganancia, MaterialTheme.coloresExtra.correct.color),
             PorcionDona("Costo", costo, MaterialTheme.colorScheme.tertiary)
         ),
+        formatearValor = { v -> dinero(v) },
         modifier = modifier,
         diametro = if (conImportes) 130.dp else 110.dp,
-        // El importe solo donde cabe: en telefono el renglon se cortaria.
-        formatearValor = if (conImportes) ({ v -> dinero(v) }) else null
+        // El importe en cada renglon solo donde cabe: en telefono se cortaria.
+        conImportes = conImportes
     )
 }
 
@@ -324,10 +328,16 @@ private fun CifrasContenido(
     etiquetasLargas: Boolean,
     modificadorTarjeta: Modifier
 ) {
+    // Una ganancia negativa NO es una ganancia chica: es lo contrario de lo
+    // que dice la etiqueta. Con el mismo azul de siempre hay que leer el signo
+    // menos para enterarse, y ese signo mide dos pixeles.
+    val enPerdida = ganancia < 0.0
     TarjetaCifra(
         if (etiquetasLargas) "Ganancia total" else "Ganancia", dinero(ganancia),
-        fondo = MaterialTheme.colorScheme.primaryContainer,
-        contenido = MaterialTheme.colorScheme.onPrimaryContainer,
+        fondo = if (enPerdida) MaterialTheme.colorScheme.errorContainer
+        else MaterialTheme.colorScheme.primaryContainer,
+        contenido = if (enPerdida) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onPrimaryContainer,
         modifier = modificadorTarjeta
     )
     TarjetaCifra(

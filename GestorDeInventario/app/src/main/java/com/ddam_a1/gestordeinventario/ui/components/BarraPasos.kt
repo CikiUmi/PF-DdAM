@@ -3,6 +3,8 @@ package com.ddam_a1.gestordeinventario.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,19 +33,31 @@ import com.ddam_a1.gestordeinventario.ui.theme.Margenes
 // ============================================================
 
 @Composable
-fun BarraPasos(paso: Int, total: Int, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+fun BarraPasos(
+    paso: Int,
+    total: Int,
+    modifier: Modifier = Modifier,
+    /**
+     * Texto arriba y rayas debajo, todo al centro (Figma 32:36 y 112:6163).
+     *
+     * En una pantalla ancha el indicador en linea deja el texto pegado a un
+     * borde y las rayas al otro, a medio metro de distancia, y deja de leerse
+     * como una sola cosa. Al centro vuelve a ser un solo objeto.
+     */
+    centrado: Boolean = false
+) {
+    val texto: @Composable () -> Unit = {
         Text(
             "Paso " + paso + " de " + total,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+    // Las rayas van marcadas como decorativas: "Paso 1 de 2" ya lo dice todo,
+    // y un lector de pantalla leyendo dos rectangulos no ayuda a nadie.
+    val rayas: @Composable (Dp) -> Unit = { ancho ->
         Row(
-            Modifier.width(120.dp).clearAndSetSemantics { },
+            Modifier.width(ancho).clearAndSetSemantics { },
             horizontalArrangement = Arrangement.spacedBy(Margenes.xs)
         ) {
             repeat(total) { i ->
@@ -58,6 +72,26 @@ fun BarraPasos(paso: Int, total: Int, modifier: Modifier = Modifier) {
                         )
                 )
             }
+        }
+    }
+
+    if (centrado) {
+        Column(
+            modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Margenes.md)
+        ) {
+            texto()
+            rayas(160.dp)
+        }
+    } else {
+        Row(
+            modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            texto()
+            rayas(120.dp)
         }
     }
 }

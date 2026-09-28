@@ -69,7 +69,7 @@ fun PantallaFormularioProducto(
                     Modifier.widthIn(max = Anchos.tarjetaAncha),
                     verticalArrangement = Arrangement.spacedBy(Margenes.lg)
                 ) {
-                    if (esNuevo) BarraPasos(paso = 1, total = 2)
+                    if (esNuevo) BarraPasos(paso = 1, total = 2, centrado = true)
 
                     CampoTexto(
                         nombre, "Nombre del producto", { nombre = it },

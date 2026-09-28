@@ -72,4 +72,5 @@ object Iconos {
     val CirculoCheck = icono("circuloCheck", "M12 2A10 10 0 1 0 12 22A10 10 0 1 0 12 2 M8 12L11 15L16 9", 1.9f)
     val Circulo     = icono("circulo", "M12 2A10 10 0 1 0 12 22A10 10 0 1 0 12 2", 1.9f)
     val Etiqueta    = icono("etiqueta", "M20.59 13.41L13.42 20.58A2 2 0 0 1 10.59 20.58L2 12V2H12L20.59 10.59A2 2 0 0 1 20.59 13.41Z M7 7H7.01")
+    val Basura      = icono("basura", "M3 6H21 M8 6V4A2 2 0 0 1 10 2H14A2 2 0 0 1 16 4V6 M19 6V20A2 2 0 0 1 17 22H7A2 2 0 0 1 5 20V6Z M10 11V17 M14 11V17")
 }

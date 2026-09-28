@@ -118,9 +118,14 @@ class InventarioViewModel @Inject constructor(
     // que la pantalla necesita de vuelta (para navegar, o para saber si fallo)
     // son `suspend` y la pantalla las llama desde su propio scope.
 
-    fun agregarMaterial(nombre: String, unidad: String, costo: Double, cantidad: Double) {
+    fun agregarMaterial(
+        nombre: String, unidad: String, costo: Double, cantidad: Double,
+        caducidadInicial: String = ""
+    ) {
         if (nombre.isBlank() || unidad.isBlank()) return
-        viewModelScope.launch { repo.agregarMaterial(nombre.trim(), unidad.trim(), costo, cantidad) }
+        viewModelScope.launch {
+            repo.agregarMaterial(nombre.trim(), unidad.trim(), costo, cantidad, caducidadInicial)
+        }
     }
 
     fun editarMaterial(id: String, nombre: String? = null, costo: Double? = null) {
@@ -152,12 +157,13 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch {
             repo.agregarExistenciasMaterial(materialId, cantidad)
 
+            // El lote se registra SIEMPRE, caduque el material o no. La fecha
+            // es lo opcional, no el lote: un saco de harina que no caduca
+            // tambien entro un dia y con una cantidad. Antes solo se guardaba
+            // cuando habia fecha, y los materiales sin caducidad mostraban la
+            // lista de lotes vacia por mas entradas que registraras.
             val tieneCaducidad = !caducidad.isNullOrBlank()
-            if (tieneCaducidad) {
-                // El lote se queda con la MISMA cantidad que acaba de entrar:
-                // son la misma entrada contada una sola vez.
-                repo.agregarLote(materialId, cantidad, caducidad!!.trim())
-            }
+            repo.agregarLote(materialId, cantidad, caducidad?.trim() ?: "")
 
             repo.registrarLog(
                 fecha, "manual",
@@ -168,8 +174,31 @@ class InventarioViewModel @Inject constructor(
     }
 
     fun agregarLote(materialId: String, cantidad: Double, fecha: String) {
-        if (fecha.isBlank() || cantidad <= 0.0) return
+        if (cantidad <= 0.0) return
         viewModelScope.launch { repo.agregarLote(materialId, cantidad, fecha) }
+    }
+
+    /**
+     * Saca un lote del almacen: lo borra y baja la existencia del material.
+     *
+     * Los datos para la bitacora se reciben ya resueltos porque despues de
+     * borrar el lote ya no hay a quien preguntarle cuanto era.
+     */
+    fun eliminarLote(
+        loteId: String,
+        nombreMaterial: String,
+        cantidad: Double,
+        unidad: String,
+        fecha: String
+    ) {
+        viewModelScope.launch {
+            if (repo.eliminarLote(loteId)) {
+                repo.registrarLog(
+                    fecha, "manual",
+                    "Baja de lote de " + nombreMaterial + " (" + cantidad + " " + unidad + ")"
+                )
+            }
+        }
     }
 
     fun definirStockMinimo(materialId: String, minimo: Double) {
@@ -200,12 +229,13 @@ class InventarioViewModel @Inject constructor(
         costo: Double,
         stockMinimo: Double,
         diasAvisoCaducidad: Int,
-        fecha: String
+        fecha: String,
+        caducidadInicial: String = ""
     ) {
         if (nombre.isBlank() || unidad.isBlank()) return
         viewModelScope.launch {
             val destino = if (id == null) {
-                repo.agregarMaterial(nombre.trim(), unidad.trim(), costo, cantidad)
+                repo.agregarMaterial(nombre.trim(), unidad.trim(), costo, cantidad, caducidadInicial)
             } else {
                 repo.editarMaterial(id, nombre.trim(), costo)
                 repo.leerMaterial(id) ?: return@launch
@@ -366,6 +396,10 @@ class InventarioViewModel @Inject constructor(
     // leen ni escriben nada. Por eso no pasan por el repositorio ni son
     // suspend. Se exponen aqui nada mas para que las pantallas no tengan que
     // importar data/.
+
+    /** Las que cuentan para dinero: las canceladas quedan fuera. */
+    fun ventasQueCuentan(ventas: List<Venta>): List<Venta> =
+        RendimientoNegocio.ventasQueCuentan(ventas)
 
     fun calcularIngresos(ventas: List<Venta>): Double = RendimientoNegocio.calcularIngresos(ventas)
     fun calcularGanancias(ventas: List<Venta>): Double = RendimientoNegocio.calcularGanancias(ventas)

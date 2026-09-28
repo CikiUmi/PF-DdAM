@@ -26,7 +26,7 @@ import com.ddam_a1.gestordeinventario.ui.fechaYHora
 import com.ddam_a1.gestordeinventario.ui.ahora
 import com.ddam_a1.gestordeinventario.ui.hoy
 import com.ddam_a1.gestordeinventario.ui.screens.VentaPorProducto
-import com.ddam_a1.gestordeinventario.ui.ventasPorDiaDeLaSemana
+import com.ddam_a1.gestordeinventario.ui.ventasPorPeriodo
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonProduccion
 import com.ddam_a1.gestordeinventario.ui.screens.RenglonReceta
 import com.ddam_a1.gestordeinventario.ui.screens.UsoEnProducto
@@ -172,18 +172,24 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val ventas by inventarioVm.ventas.collectAsState()
             val avisos by inventarioVm.avisos(hoy()).collectAsState(initial = emptyList())
 
+            // Las cuatro franjas de Inicio salen de los MISMOS avisos que la
+            // campana, para que las dos digan lo mismo. `distinct` sobre la
+            // referencia: un material con tres lotes vencidos trae tres avisos
+            // y la franja diria "3 materiales" cuando es uno. Y solo los
+            // pendientes, para que descartar el aviso apague la franja.
+            val cuantosAvisos: (TipoAviso) -> Int = { tipo ->
+                avisos.filter { !it.leido && it.tipo == tipo }
+                    .map { it.referenciaId }
+                    .distinct()
+                    .size
+            }
+
             PantallaInicio(
                 avisos = avisos.count { !it.leido },
                 materialesBajos = materiales.count { inventarioVm.esStockBajo(it) },
-                // `distinct` sobre el material: un material con tres lotes
-                // vencidos trae tres avisos, y la franja diria "3 materiales"
-                // cuando es uno. Y solo los pendientes, para que descartar el
-                // aviso apague tambien la franja.
-                materialesCaducados = avisos
-                    .filter { !it.leido && it.tipo == TipoAviso.CADUCADO }
-                    .map { it.referenciaId }
-                    .distinct()
-                    .size,
+                productosBajos = cuantosAvisos(TipoAviso.STOCK_BAJO_PRODUCTO),
+                materialesCaducados = cuantosAvisos(TipoAviso.CADUCADO),
+                productosCaducados = cuantosAvisos(TipoAviso.CADUCADO_PRODUCTO),
                 totalMateriales = materiales.size,
                 totalProductos = productos.size,
                 // Solo las tres ultimas: Inicio es un vistazo, el historial
@@ -227,7 +233,15 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 // una venta cancelada deja la ganancia arriba de los ingresos.
                 costo = (ingresos - ganancia).coerceAtLeast(0.0),
                 perdidas = inventarioVm.calcularPerdidas(delPeriodo),
-                ventasPorDia = ventasPorDiaDeLaSemana(delPeriodo, fechaDe = { it.fecha }) { v -> v.total },
+                // Las barras se arman con las ventas DEL PERIODO y con el eje
+                // que le corresponde: por hora si se mira un dia, por dia si
+                // se mira la semana, por semana si se mira el mes.
+                ventasPorDia = ventasPorPeriodo(
+                    periodo, inventarioVm.ventasQueCuentan(delPeriodo),
+                    fechaDe = { it.fecha },
+                    horaDe = { it.hora },
+                    valorDe = { it.total }
+                ),
                 masVendidos = inventarioVm.productosMasVendidos(delPeriodo, 5).map { (id, piezas) ->
                     val producto = productos.find { it.id == id }
                     VentaPorProducto(producto?.nombre ?: "Producto", piezas, producto?.precioVenta ?: 0.0)
@@ -304,6 +318,19 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                     atras()
                     inventarioVm.eliminarMaterial(id)
                 },
+                // Los datos del lote se leen ANTES de borrarlo: despues no hay
+                // a quien preguntarle cuanto era para la bitacora.
+                onEliminarLote = { lote ->
+                    if (material != null) {
+                        inventarioVm.eliminarLote(
+                            loteId = lote.id,
+                            nombreMaterial = material.nombre,
+                            cantidad = lote.cantidad,
+                            unidad = material.unidadMedida,
+                            fecha = hoy()
+                        )
+                    }
+                },
                 onAtras = atras
             )
         }
@@ -330,7 +357,8 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                         costo = datos.costo,
                         stockMinimo = datos.stockMinimo,
                         diasAvisoCaducidad = datos.diasAvisoCaducidad,
-                        fecha = hoy()
+                        fecha = hoy(),
+                        caducidadInicial = datos.caducidadInicial
                     )
                 },
                 onAtras = atras
@@ -570,13 +598,19 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
             PantallaHistorialVentas(
                 ventas = filtradas,
-                // La grafica siempre ensena la SEMANA, sin importar el chip:
-                // es "ventas por dia", y un solo dia o un mes entero no caben
-                // en siete columnas. Se arma con todas las ventas, no con las
-                // filtradas, o al elegir "Hoy" se quedaria con una sola barra.
-                ventasPorDia = ventasPorDiaDeLaSemana(
-                    ventas.filter { !it.cancelada },
+                // La grafica sigue al chip: cada periodo trae su propio eje
+                // (horas, dias o semanas) y se arma con las ventas FILTRADAS,
+                // que son las que el usuario esta mirando. Antes eran siempre
+                // los siete dias de la semana con todas las ventas, asi que
+                // con "Hoy" puesto la grafica ensenaba otra cosa que el resto
+                // de la pantalla.
+                // `ventasQueCuentan` y no `filtradas` a secas: la lista de
+                // abajo SI ensena las canceladas, pero la grafica es dinero y
+                // ahi no cuentan.
+                ventasPorDia = ventasPorPeriodo(
+                    periodo, inventarioVm.ventasQueCuentan(filtradas),
                     fechaDe = { it.fecha },
+                    horaDe = { it.hora },
                     valorDe = { it.total }
                 ),
                 ingresos = inventarioVm.calcularIngresos(filtradas),

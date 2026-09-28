@@ -24,9 +24,14 @@ import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 // ============================================================
 //  CHIP DE ESTADO  (Figma 36:70, 36:73, 36:76)
 //
-//  Los tres estados del inventario. Es un enum y no tres composables porque
-//  un material esta en UNO de los tres, y con enum el compilador obliga a
-//  cubrirlos todos en cada `when`.
+//  Los estados del inventario. Es un enum y no un composable por estado
+//  porque el compilador obliga a cubrirlos todos en cada `when`: el dia que
+//  se agregue uno, no se puede olvidar ninguna pantalla.
+//
+//  El enum vive aqui y la ETIQUETA vive dentro de el, no en quien lo pinta.
+//  Hay dos formas de ensenarlo —este chip con punto y `PastillaEstado` con
+//  icono— y si cada una escribiera su propio texto, la misma situacion
+//  acabaria llamandose distinto segun la pantalla.
 //
 //  Accesibilidad: el punto de color NO es la unica senal. El texto
 //  ("Disponible", "Stock bajo", "Vencido") dice lo mismo, asi que quien no
@@ -40,7 +45,9 @@ import com.ddam_a1.gestordeinventario.ui.theme.coloresExtra
 enum class EstadoInventario(val etiqueta: String) {
     DISPONIBLE("Disponible"),
     STOCK_BAJO("Stock bajo"),
-    VENCIDO("Vencido")
+    /** Todavia da tiempo: por eso no es rojo, sino el rosa de `tertiary`. */
+    POR_CADUCAR("Por caducar"),
+    CADUCADO("Caducado")
 }
 
 @Composable
@@ -50,12 +57,14 @@ fun ChipEstado(estado: EstadoInventario, modifier: Modifier = Modifier) {
 
     val fondo = when (estado) {
         EstadoInventario.DISPONIBLE -> correcto.colorContainer
-        EstadoInventario.STOCK_BAJO, EstadoInventario.VENCIDO -> cs.errorContainer
+        EstadoInventario.POR_CADUCAR -> cs.tertiaryContainer
+        EstadoInventario.STOCK_BAJO, EstadoInventario.CADUCADO -> cs.errorContainer
     }
     val letra = when (estado) {
         EstadoInventario.DISPONIBLE -> correcto.onColorContainer
+        EstadoInventario.POR_CADUCAR -> cs.onTertiaryContainer
         EstadoInventario.STOCK_BAJO -> cs.onErrorContainer
-        EstadoInventario.VENCIDO -> cs.error
+        EstadoInventario.CADUCADO -> cs.error
     }
 
     Row(

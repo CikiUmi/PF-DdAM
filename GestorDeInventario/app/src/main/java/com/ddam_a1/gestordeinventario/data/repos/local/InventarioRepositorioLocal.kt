@@ -88,7 +88,8 @@ class InventarioRepositorioLocal @Inject constructor(
     // ---------- MATERIALES ----------
 
     override suspend fun agregarMaterial(
-        nombre: String, unidad: String, costo: Double, cantidad: Double
+        nombre: String, unidad: String, costo: Double, cantidad: Double,
+        caducidadInicial: String
     ): Material {
         val material = Material(
             id = UUID.randomUUID().toString(),
@@ -98,6 +99,20 @@ class InventarioRepositorioLocal @Inject constructor(
             cantidadDisponible = cantidad
         )
         materialDao.guardar(material)
+
+        // La cantidad inicial TAMBIEN es un lote. Antes solo subia la
+        // existencia, y el material nacia con 20 kg que no venian de ninguna
+        // entrada: la lista de lotes salia vacia y sus cantidades no sumaban
+        // lo disponible.
+        if (cantidad > 0.0) {
+            loteDao.agregar(
+                LoteMaterial(
+                    materialId = material.id,
+                    caducidad = caducidadInicial.trim(),
+                    cantidad = cantidad
+                )
+            )
+        }
         return material
     }
 
@@ -129,11 +144,31 @@ class InventarioRepositorioLocal @Inject constructor(
     }
 
     override suspend fun agregarLote(materialId: String, cantidad: Double, fecha: String): Boolean {
-        if (fecha.isBlank() || cantidad <= 0.0) return false
+        // Ya NO se exige fecha. Un material que no caduca tambien recibe
+        // mercancia, y ese movimiento merece quedar registrado: sin esto, sus
+        // entradas desaparecian y la seccion de lotes se veia vacia para
+        // siempre. La cantidad si es obligatoria: un lote de cero no entro.
+        if (cantidad <= 0.0) return false
         loteDao.agregar(
             LoteMaterial(materialId = materialId, caducidad = fecha.trim(), cantidad = cantidad)
         )
         return true
+    }
+
+    override suspend fun eliminarLote(loteId: String): Boolean {
+        val lote = loteDao.leer(loteId) ?: return false
+        return db.withTransaction {
+            // `descontar` lleva un `AND cantidad_disponible >= :cantidad` que
+            // protege de dejar la existencia en negativo. Aqui eso se volveria
+            // en contra: si el material ya se consumio en produccion, lo
+            // disponible puede ser MENOR que el lote, la resta no aplicaria y
+            // el lote se iria sin descontar nada. Por eso se descuenta lo que
+            // de verdad queda, que como mucho es el lote entero.
+            val disponible = materialDao.leer(lote.materialId)?.cantidadDisponible ?: 0.0
+            val aDescontar = minOf(lote.cantidad, disponible)
+            if (aDescontar > 0.0) materialDao.descontar(lote.materialId, aDescontar)
+            loteDao.eliminar(loteId) > 0
+        }
     }
 
     override suspend fun definirStockMinimo(materialId: String, minimo: Double): Boolean =
