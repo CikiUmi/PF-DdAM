@@ -109,7 +109,14 @@ fun notificarAvisos(contexto: Context, avisos: List<Aviso>): Int {
     for (aviso in avisos) {
         val notificacion: Notification = NotificationCompat.Builder(contexto, CANAL_CADUCIDADES)
             .setSmallIcon(R.drawable.ic_aviso)
-            .setContentTitle("Material por caducar")
+            // EL NOMBRE PRIMERO. En la barra de estado se ven tres o cuatro
+            // notificaciones a la vez y solo se lee el titulo: "Material por
+            // caducar" repetido cuatro veces no distingue nada, y obliga a
+            // abrir cada una para saber de que material habla.
+            //
+            // `aviso.titulo` es el nombre del material o del producto, que el
+            // repositorio ya guarda aparte del mensaje justo para esto.
+            .setContentTitle(aviso.titulo + ": Por caducar")
             .setContentText(aviso.mensaje)
             // El mensaje trae nombre, cantidad y fecha: en una linea se corta.
             .setStyle(NotificationCompat.BigTextStyle().bigText(aviso.mensaje))
