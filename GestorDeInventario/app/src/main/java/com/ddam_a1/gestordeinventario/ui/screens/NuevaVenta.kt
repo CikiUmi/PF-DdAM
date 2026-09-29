@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.components.SinResultados
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
@@ -139,7 +140,7 @@ private fun VentaUnaColumna(
             item { BannerAviso(error, onClick = onDescartarError) }
         }
         item { BarraBusqueda(buscar, "Buscar producto...", onBuscar) }
-        listaDeProductos(encontrados, ticket, sumar, restar)
+        listaDeProductos(encontrados, ticket, buscar, { onBuscar("") }, sumar, restar)
 
         item { ResumenTicket(ticket.size, piezas, total) }
         item {
@@ -195,7 +196,9 @@ private fun VentaDosColumnas(
                     contentPadding = PaddingValues(bottom = Margenes.xl)
                 ) {
                     item { BarraBusqueda(buscar, "Buscar producto...", onBuscar) }
-                    listaDeProductos(encontrados, ticket, sumar, restar)
+                    listaDeProductos(
+                        encontrados, ticket, buscar, { onBuscar("") }, sumar, restar
+                    )
                 }
 
                 // Derecha: lo que llevas. Se queda quieto mientras eliges, que
@@ -258,12 +261,20 @@ private fun VentaDosColumnas(
 private fun LazyListScope.listaDeProductos(
     encontrados: List<Producto>,
     ticket: Map<String, Int>,
+    busqueda: String,
+    onLimpiarBusqueda: () -> Unit,
     sumar: (String) -> Unit,
     restar: (String) -> Unit
 ) {
     if (encontrados.isEmpty()) {
         item {
-            EstadoVacio("Sin productos", "Registre productos en el catálogo para poder vender")
+            // Buscar algo que no existe no es lo mismo que no tener catalogo:
+            // el segundo mensaje manda a registrar productos que quiza ya
+            // estan, solo que no se llaman asi.
+            if (busqueda.isNotBlank()) SinResultados(busqueda, onLimpiarBusqueda)
+            else EstadoVacio(
+                "Sin productos", "Registre productos en el catálogo para poder vender"
+            )
         }
         return
     }

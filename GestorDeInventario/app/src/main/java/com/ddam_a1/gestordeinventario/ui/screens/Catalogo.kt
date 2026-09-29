@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.components.SinResultados
 import com.ddam_a1.gestordeinventario.data.repos.DIAS_AVISO_CADUCIDAD_PRODUCTO
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
@@ -159,7 +160,7 @@ private fun CatalogoConBarra(
     ) {
         item { BarraBusqueda(texto, "Buscar producto...", onTexto) }
         item { FilaFiltrosCatalogo(filtro, onFiltro) }
-        rejillaProductos(lista, costos, columnas, filtro, onProducto)
+        rejillaProductos(lista, costos, columnas, filtro, texto, { onTexto("") }, onProducto)
     }
 }
 
@@ -213,7 +214,7 @@ private fun CatalogoConPanel(
 
                     item { FilaFiltrosCatalogo(filtro, onFiltro) }
 
-                    rejillaProductos(lista, costos, 4, filtro, onProducto)
+                    rejillaProductos(lista, costos, 4, filtro, texto, { onTexto("") }, onProducto)
                 }
                 Box(
                     Modifier
@@ -266,6 +267,8 @@ private fun LazyListScope.rejillaProductos(
     costos: Map<String, Double>,
     columnas: Int,
     filtro: FiltroCat,
+    busqueda: String,
+    onLimpiarBusqueda: () -> Unit,
     onProducto: (String) -> Unit
 ) {
     if (lista.isEmpty()) {
@@ -273,11 +276,14 @@ private fun LazyListScope.rejillaProductos(
         // "En riesgo" puesto haria pensar que no hay catalogo, cuando en
         // realidad es una buena noticia.
         item {
-            when (filtro) {
-                FiltroCat.TODOS -> EstadoVacio(
+            // La busqueda manda sobre el filtro: si se escribio algo, eso es
+            // lo que dejo la lista vacia, aunque ademas hubiera un filtro.
+            when {
+                busqueda.isNotBlank() -> SinResultados(busqueda, onLimpiarBusqueda)
+                filtro == FiltroCat.TODOS -> EstadoVacio(
                     "Sin productos", "Los productos que registre aparecerán aquí"
                 )
-                FiltroCat.EN_RIESGO -> EstadoVacio(
+                filtro == FiltroCat.EN_RIESGO -> EstadoVacio(
                     "Nada en riesgo", "Ningún producto está por acabarse ni por caducar"
                 )
                 else -> EstadoVacio(

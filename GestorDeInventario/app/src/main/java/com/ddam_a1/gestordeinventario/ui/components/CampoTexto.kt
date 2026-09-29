@@ -20,6 +20,16 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -85,6 +95,9 @@ fun CampoTexto(
     // asi que se queda aqui y no sube al ViewModel.
     var visible by remember { mutableStateOf(false) }
     val hayError = error != null
+    // Quien mueve el foco de un campo al siguiente. Se pide aqui porque
+    // `LocalFocusManager` solo se puede leer dentro de una composicion.
+    val gestorDeFoco = LocalFocusManager.current
 
     // El foco se escucha con el MISMO interactionSource que recibe el campo.
     // Si se dejara que BasicTextField se hiciera uno propio, nadie de aqui
@@ -162,13 +175,31 @@ fun CampoTexto(
                     ),
                     // Contrasena: el teclado no guarda estas palabras en su
                     // diccionario ni las sugiere. Numero: teclado numerico.
+                    // ============================================================
+                    //  PASAR AL SIGUIENTE CAMPO SIN TOCAR LA PANTALLA
+                    //
+                    //  Dos caminos distintos para lo mismo:
+                    //
+                    //  `ImeAction.Next` pone la flecha "siguiente" en el
+                    //  teclado EN PANTALLA, que es como se recorre un
+                    //  formulario en un telefono. Sin ella el teclado ensena
+                    //  "Enter" y no hace nada.
+                    //
+                    //  El bloque de `onPreviewKeyEvent` de mas abajo es para el
+                    //  teclado FISICO. Son dos cosas separadas: una tecla Tab
+                    //  de verdad no dispara `onNext`.
+                    // ============================================================
                     keyboardOptions = KeyboardOptions(
                         keyboardType = when {
                             esContrasena -> KeyboardType.Password
                             soloEnteros -> KeyboardType.Number
                             soloNumeros -> KeyboardType.Decimal
                             else -> KeyboardType.Text
-                        }
+                        },
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { gestorDeFoco.moveFocus(FocusDirection.Down) }
                     ),
                     visualTransformation =
                         if (esContrasena && !visible) PasswordVisualTransformation()
@@ -188,6 +219,35 @@ fun CampoTexto(
                     // ============================================================
                     modifier = Modifier
                         .fillMaxWidth()
+                        // ============================================================
+                        //  LA TECLA TAB SALE DEL CAMPO
+                        //
+                        //  Un campo de texto se queda con TODAS las teclas que
+                        //  recibe, Tab incluida: para el, Tab es un caracter mas
+                        //  que escribir. Por eso el recorrido con teclado se
+                        //  atasca en el primer campo del formulario y parece que
+                        //  la pantalla se colgo.
+                        //
+                        //  `onPreviewKeyEvent` ve la tecla ANTES que el campo y
+                        //  se la queda: devuelve `true`, que significa "ya la
+                        //  atendi, no la pases". Shift+Tab va hacia atras, como
+                        //  en cualquier formulario.
+                        //
+                        //  Solo en KeyDown: sin eso, el KeyUp de la misma
+                        //  pulsacion movería el foco una segunda vez y se
+                        //  saltaria un campo.
+                        // ============================================================
+                        .onPreviewKeyEvent { evento ->
+                            if (evento.key == Key.Tab && evento.type == KeyEventType.KeyDown) {
+                                gestorDeFoco.moveFocus(
+                                    if (evento.isShiftPressed) FocusDirection.Previous
+                                    else FocusDirection.Next
+                                )
+                                true
+                            } else {
+                                false
+                            }
+                        }
                         // ============================================================
                         //  LA ETIQUETA TIENE QUE VIAJAR CON EL CAMPO
                         //

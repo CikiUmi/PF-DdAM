@@ -82,3 +82,28 @@ fun EstadoVacio(
         }
     }
 }
+
+// ============================================================
+//  EL VACIO DE UNA BUSQUEDA NO ES EL VACIO DE UNA LISTA
+//
+//  "Sin materiales · Los materiales registrados apareceran aqui" es correcto
+//  cuando el inventario esta de verdad vacio. Dicho despues de buscar
+//  "harina", es mentira: hay veinte materiales, ninguno se llama asi.
+//
+//  Y asusta. En una demostracion, ver "Sin materiales" sobre un inventario
+//  lleno parece que la aplicacion perdio los datos.
+//
+//  Lleva boton para salir: quien busco algo que no existe esta atorado en una
+//  pantalla vacia, y borrar el texto a mano en un campo que ya no se ve es
+//  justo lo que no se le ocurre a nadie.
+// ============================================================
+
+@Composable
+fun SinResultados(busqueda: String, onLimpiar: () -> Unit) {
+    EstadoVacio(
+        "Sin resultados",
+        "Nada coincide con \"" + busqueda + "\"",
+        textoAccion = "Limpiar búsqueda",
+        onAccion = onLimpiar
+    )
+}

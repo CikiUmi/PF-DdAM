@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.components.SinResultados
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
@@ -143,7 +144,7 @@ private fun InventarioLista(
         item { FilaFiltros(filtro, onFiltro) }
 
         if (lista.isEmpty()) {
-            item { EstadoVacio("Sin materiales", "Los materiales registrados aparecerán aquí") }
+            item { InventarioVacio(texto, filtro, onTexto) }
         } else if (enDosColumnas) {
             // De dos en dos. `chunked` en vez de una rejilla perezosa para no
             // traer otra dependencia por una pantalla.
@@ -219,12 +220,7 @@ private fun InventarioTabla(
                     item { FilaFiltros(filtro, onFiltro) }
 
                     if (lista.isEmpty()) {
-                        item {
-                            EstadoVacio(
-                                "Sin materiales",
-                                "Los materiales registrados aparecerán aquí"
-                            )
-                        }
+                        item { InventarioVacio(texto, filtro, onTexto) }
                     } else {
                         item { EncabezadoTabla() }
                         // Los renglones quedan a 16 y no a 8 como antes: es
@@ -250,6 +246,29 @@ private fun InventarioTabla(
 }
 
 // ---------- PIEZAS COMPARTIDAS ----------
+
+/**
+ * El vacio dice POR QUE esta vacio.
+ *
+ * Son tres situaciones distintas y solo una es "no hay nada": buscar algo que
+ * no existe, filtrar por algo que nadie cumple, y el inventario de verdad
+ * vacio. Decir siempre lo tercero hace pensar que se perdieron los datos.
+ */
+@Composable
+private fun InventarioVacio(busqueda: String, filtro: FiltroInv, onTexto: (String) -> Unit) {
+    when {
+        busqueda.isNotBlank() -> SinResultados(busqueda) { onTexto("") }
+        filtro == FiltroInv.BAJOS -> EstadoVacio(
+            "Nada bajo de stock", "Ningún material está por acabarse"
+        )
+        filtro == FiltroInv.CADUCAN -> EstadoVacio(
+            "Sin lotes con fecha", "Ningún material tiene lotes registrados"
+        )
+        else -> EstadoVacio(
+            "Sin materiales", "Los materiales registrados aparecerán aquí"
+        )
+    }
+}
 
 @Composable
 private fun FilaFiltros(filtro: FiltroInv, onFiltro: (FiltroInv) -> Unit) {
