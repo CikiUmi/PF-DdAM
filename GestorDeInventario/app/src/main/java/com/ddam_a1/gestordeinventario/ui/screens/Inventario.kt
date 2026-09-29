@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -188,43 +187,51 @@ private fun InventarioTabla(
             PanelLateral(DestinoBarra.INVENTARIO, onDestino)
 
             Box(Modifier.weight(1f).fillMaxSize()) {
-                Column(
+                // Todo dentro de la lista, encabezado incluido: con el
+                // encabezado fijo y la lista debajo, una ventana baja deja a
+                // la lista sin alto y la pantalla entera se queda sin
+                // desplazamiento. Asi se desplaza completa, como en telefono.
+                LazyColumn(
                     Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = Margenes.xl),
-                    verticalArrangement = Arrangement.spacedBy(Margenes.lg)
+                    verticalArrangement = Arrangement.spacedBy(Margenes.lg),
+                    contentPadding = PaddingValues(bottom = 88.dp)
                 ) {
                     // Titulo y busqueda comparten renglon: en tableta la barra
                     // de busqueda sola desperdiciaria toda una franja.
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Margenes.xl)
-                    ) {
-                        Text(
-                            "Inventario",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f).semantics { heading() }
-                        )
-                        Box(Modifier.width(380.dp)) {
-                            BarraBusqueda(texto, "Buscar material...", onTexto)
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Margenes.xl)
+                        ) {
+                            Text(
+                                "Inventario",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f).semantics { heading() }
+                            )
+                            Box(Modifier.width(380.dp)) {
+                                BarraBusqueda(texto, "Buscar material...", onTexto)
+                            }
                         }
                     }
 
-                    FilaFiltros(filtro, onFiltro)
+                    item { FilaFiltros(filtro, onFiltro) }
 
                     if (lista.isEmpty()) {
-                        EstadoVacio("Sin materiales", "Los materiales registrados aparecerán aquí")
-                    } else {
-                        EncabezadoTabla()
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(Margenes.sm),
-                            contentPadding = PaddingValues(
-                                bottom = 88.dp
+                        item {
+                            EstadoVacio(
+                                "Sin materiales",
+                                "Los materiales registrados aparecerán aquí"
                             )
-                        ) {
-                            items(lista.size) { i ->
-                                RenglonTabla(lista[i], esStockBajo, onMaterial)
-                            }
+                        }
+                    } else {
+                        item { EncabezadoTabla() }
+                        // Los renglones quedan a 16 y no a 8 como antes: es
+                        // la separacion de la lista, que ahora los incluye. Se
+                        // ve un poco mas aireado y es un cambio a proposito.
+                        items(lista.size) { i ->
+                            RenglonTabla(lista[i], esStockBajo, onMaterial)
                         }
                     }
                 }

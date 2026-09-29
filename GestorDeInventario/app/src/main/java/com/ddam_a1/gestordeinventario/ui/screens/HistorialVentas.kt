@@ -5,11 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -145,11 +145,27 @@ private fun VentasConPanel(
         Row(Modifier.fillMaxSize().systemBarsPadding()) {
             PanelLateral(DestinoBarra.VENTAS, onDestino)
 
-            Column(
+                // ============================================================
+                //  TODO DENTRO DE LA LISTA, INCLUIDO EL ENCABEZADO
+                //
+                //  Antes esto era una Column con el encabezado, la grafica y
+                //  las cifras FIJOS, y abajo una lista que se llevaba el alto
+                //  sobrante. En una ventana alta funciona; en una baja —una
+                //  tableta acostada, o una ventana de escritorio a media
+                //  altura— el contenido fijo se come el alto entero y a la
+                //  lista le queda CERO: no se ve y, sobre todo, nada se
+                //  desplaza, asi que lo que sobra abajo es inalcanzable.
+                //
+                //  Metiendolo todo en la LazyColumn, la pantalla se desplaza
+                //  entera, como ya hace la version de telefono. Y de paso se
+                //  quita un desplazamiento anidado, que en tableta es una
+                //  fuente clasica de gestos que no responden.
+                // ============================================================
+            LazyColumn(
                 Modifier.weight(1f).fillMaxSize().padding(Margenes.xl),
                 verticalArrangement = Arrangement.spacedBy(Margenes.lg)
             ) {
-                Row(
+                item { Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Margenes.lg)
@@ -160,21 +176,38 @@ private fun VentasConPanel(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f).semantics { heading() }
                     )
-                    BotonPrincipal("Nueva venta", onClick = onNuevaVenta)
-                }
+                    // ============================================================
+                    //  UN BOTON EN UN RENGLON TIENE QUE LLEVAR SU ANCHO
+                    //
+                    //  `BotonBase` hace `fillMaxWidth()` por dentro, que es lo
+                    //  correcto para un boton al pie de un formulario. Dentro
+                    //  de un Row, un hijo SIN peso se mide primero y con todo
+                    //  el ancho disponible: el boton se quedaba con el renglon
+                    //  entero y al titulo le tocaban cero, asi que "Ventas"
+                    //  salia en vertical, una letra por linea.
+                    //
+                    //  Con un ancho maximo, el `fillMaxWidth` de dentro llena
+                    //  esos 220 y no mas. Es el mismo patron que ya usan
+                    //  Inventario y Catalogo con su barra de busqueda.
+                    // ============================================================
+                    BotonPrincipal(
+                        "Nueva venta",
+                        modifier = Modifier.widthIn(max = 220.dp),
+                        onClick = onNuevaVenta
+                    )
+                } }
 
-                GraficaBarras(tituloDeVentas(periodo), ventasPorDia, formatearValor = { dinero(it) })
-                SelectorPeriodoVentas(periodo, onPeriodo)
-                CifrasVentas(ingresos, ganancias)
-                TituloHistorial()
-
-                LazyColumn(
-                    Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(Margenes.sm),
-                    contentPadding = PaddingValues(bottom = Margenes.xl)
-                ) {
-                    listaDeVentas(ventas, onVenta)
+                item {
+                    GraficaBarras(
+                        tituloDeVentas(periodo), ventasPorDia,
+                        formatearValor = { dinero(it) }
+                    )
                 }
+                item { SelectorPeriodoVentas(periodo, onPeriodo) }
+                item { CifrasVentas(ingresos, ganancias) }
+                item { TituloHistorial() }
+
+                listaDeVentas(ventas, onVenta)
             }
         }
     }

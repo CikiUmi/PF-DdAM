@@ -3,7 +3,6 @@ package com.ddam_a1.gestordeinventario.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -183,36 +182,38 @@ private fun CatalogoConPanel(
             PanelLateral(DestinoBarra.CATALOGO, onDestino)
 
             Box(Modifier.weight(1f).fillMaxSize()) {
-                Column(
+                // Todo dentro de la lista, encabezado incluido: con el
+                // encabezado fijo y la lista debajo, una ventana baja deja a
+                // la lista sin alto y la pantalla entera se queda sin
+                // desplazamiento. Asi se desplaza completa, como en telefono.
+                LazyColumn(
                     Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = Margenes.xl),
-                    verticalArrangement = Arrangement.spacedBy(Margenes.lg)
+                    verticalArrangement = Arrangement.spacedBy(Margenes.lg),
+                    contentPadding = PaddingValues(bottom = 88.dp)
                 ) {
                     // Titulo y busqueda en el mismo renglon: en 944 de ancho la
                     // barra sola se estiraria de lado a lado sin necesidad.
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Margenes.xl)
-                    ) {
-                        Text(
-                            "Catálogo",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f).semantics { heading() }
-                        )
-                        Box(Modifier.width(380.dp)) {
-                            BarraBusqueda(texto, "Buscar producto...", onTexto)
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Margenes.xl)
+                        ) {
+                            Text(
+                                "Catálogo",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f).semantics { heading() }
+                            )
+                            Box(Modifier.width(380.dp)) {
+                                BarraBusqueda(texto, "Buscar producto...", onTexto)
+                            }
                         }
                     }
 
-                    FilaFiltrosCatalogo(filtro, onFiltro)
+                    item { FilaFiltrosCatalogo(filtro, onFiltro) }
 
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(Margenes.lg),
-                        contentPadding = PaddingValues(bottom = 88.dp)
-                    ) {
-                        rejillaProductos(lista, costos, 4, filtro, onProducto)
-                    }
+                    rejillaProductos(lista, costos, 4, filtro, onProducto)
                 }
                 Box(
                     Modifier
