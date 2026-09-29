@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -183,6 +188,25 @@ fun CampoTexto(
                     // ============================================================
                     modifier = Modifier
                         .fillMaxWidth()
+                        // ============================================================
+                        //  LA ETIQUETA TIENE QUE VIAJAR CON EL CAMPO
+                        //
+                        //  "Nombre" es un Text hermano, arriba de la caja. Para
+                        //  quien ve, la cercania basta; para TalkBack no existe
+                        //  tal cosa: son dos nodos distintos y al pararse en el
+                        //  campo solo anunciaba "cuadro de edicion". Un
+                        //  formulario de seis campos sonaba a seis cajas iguales.
+                        //
+                        //  `contentDescription` aqui NO tapa lo escrito: en un
+                        //  campo editable el lector dice la etiqueta y luego el
+                        //  texto que contiene.
+                        //
+                        //  Y `error(...)` hace que se anuncie como invalido, no
+                        //  solo con el borde rojo que no se oye.
+                        .semantics {
+                            contentDescription = etiqueta
+                            if (error != null) error(error)
+                        }
                         .onFocusChanged { foco ->
                             if (!numerico) return@onFocusChanged
                             if (foco.isFocused && valor == "0") onCambio("")
@@ -224,7 +248,13 @@ fun CampoTexto(
                 "⚠ " + error,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = Margenes.xs)
+                modifier = Modifier
+                    .padding(start = Margenes.xs)
+                    // Region viva: el mensaje aparece DESPUES de escribir, y sin
+                    // esto TalkBack no lo dice hasta que el usuario navegue
+                    // hasta el. "Polite" espera a que termine de hablar, en vez
+                    // de interrumpir a media palabra.
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,7 +35,10 @@ fun BotonIcono(
             // mide 40 (lo que dibuja el Figma), el area tocable es mayor.
             .size(Medidas.areaToque)
             .clip(CircleShape)
-            .clickable { onClick() }
+            // `role = Button` para que TalkBack diga "boton" despues del
+            // nombre. Sin el, anuncia la descripcion y se queda callado sobre
+            // que se puede hacer con ella.
+            .clickable(role = Role.Button) { onClick() }
             .then(
                 if (conFondo) Modifier
                     .padding(Margenes.xs)
