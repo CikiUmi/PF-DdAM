@@ -9,6 +9,8 @@ import com.ddam_a1.gestordeinventario.data.services.hashContrasena
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.Negocio
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
+import com.ddam_a1.gestordeinventario.data.negocio.Permisos
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import kotlinx.coroutines.flow.Flow
@@ -154,9 +156,8 @@ class SesionRepositorioLocal @Inject constructor(
         )
     }
 
-    override fun tienePermiso(usuario: Usuario, accion: String): Boolean = when (usuario.rol) {
-        Rol.ADMINISTRADOR -> true
-        Rol.ENCARGADO -> accion in listOf("registrar_venta", "editar_inventario", "ver_estadisticas")
-        Rol.EMPLEADO -> accion == "registrar_venta"
-    }
+    // La regla NO se escribe aqui: vive en `Permisos`, que es lo unico que
+    // sabe quien puede que. Esta funcion solo la expone a traves de la interfaz.
+    override fun tienePermiso(usuario: Usuario, accion: Accion): Boolean =
+        Permisos.puede(usuario, accion)
 }

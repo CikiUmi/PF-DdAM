@@ -24,6 +24,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.ddam_a1.gestordeinventario.ui.puede
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonDestructivo
 import com.ddam_a1.gestordeinventario.ui.components.DialogoSiNo
@@ -122,7 +124,10 @@ fun PantallaDetalleVenta(
                     // Una venta cancelada ya devolvio su stock: volver a
                     // cancelarla lo devolveria dos veces. Por eso el boton no
                     // se apaga, desaparece.
-                    if (!cancelada) {
+                    // Cancelar devuelve mercancia al inventario, asi que
+                    // pide el mismo permiso que editarlo: un empleado registra
+                    // ventas, pero no las deshace.
+                    if (!cancelada && puede(Accion.EDITAR_INVENTARIO)) {
                         BotonDestructivo("Cancelar venta") { preguntar = true }
                     }
                 }

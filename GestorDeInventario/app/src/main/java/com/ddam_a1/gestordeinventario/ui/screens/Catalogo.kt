@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.data.repos.DIAS_AVISO_CADUCIDAD_PRODUCTO
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
+import com.ddam_a1.gestordeinventario.ui.puede
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
 import com.ddam_a1.gestordeinventario.ui.components.ChipFiltro
@@ -150,7 +152,11 @@ private fun CatalogoConBarra(
     Marco(
         barra = { TituloCatalogo() },
         pie = { BarraInferior(DestinoBarra.CATALOGO, onDestino) },
-        flotante = { BotonFlotante(Iconos.Agregar, "Nuevo producto", onClick = onNuevoProducto) }
+        flotante = {
+            if (puede(Accion.EDITAR_INVENTARIO)) {
+                BotonFlotante(Iconos.Agregar, "Nuevo producto", onClick = onNuevoProducto)
+            }
+        }
     ) {
         item { BarraBusqueda(texto, "Buscar producto...", onTexto) }
         item { FilaFiltrosCatalogo(filtro, onFiltro) }
@@ -212,7 +218,11 @@ private fun CatalogoConPanel(
                     Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 40.dp, bottom = Margenes.xl)
-                ) { BotonFlotante(Iconos.Agregar, "Nuevo producto", onClick = onNuevoProducto) }
+                ) {
+                    if (puede(Accion.EDITAR_INVENTARIO)) {
+                        BotonFlotante(Iconos.Agregar, "Nuevo producto", onClick = onNuevoProducto)
+                    }
+                }
             }
         }
     }

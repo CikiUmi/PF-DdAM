@@ -1,6 +1,7 @@
 package com.ddam_a1.gestordeinventario.data.repos
 
 import com.ddam_a1.gestordeinventario.modelClasses.Negocio
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import kotlinx.coroutines.flow.Flow
@@ -80,5 +81,5 @@ interface SesionRepositorio {
     suspend fun registrarLog(fecha: String, tipo: String, descripcion: String)
 
     /** Tabla de permisos por rol. Calculo puro, no toca la base. */
-    fun tienePermiso(usuario: Usuario, accion: String): Boolean
+    fun tienePermiso(usuario: Usuario, accion: Accion): Boolean
 }

@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.ddam_a1.gestordeinventario.ui.puede
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.modelClasses.Venta
 import com.ddam_a1.gestordeinventario.ui.components.AccionRapida
 import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
@@ -104,10 +106,14 @@ fun PantallaInicio(
                     Iconos.Carrito, "Registrar venta",
                     modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onNuevaVenta
                 )
-                AccionRapida(
-                    Iconos.Tendencia, "Rendimiento",
-                    modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onRendimiento
-                )
+                // Sin permiso de ver el rendimiento queda una sola accion,
+                // a todo el ancho. Un hueco vacio al lado pareceria un error.
+                if (puede(Accion.VER_ESTADISTICAS)) {
+                    AccionRapida(
+                        Iconos.Tendencia, "Rendimiento",
+                        modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onRendimiento
+                    )
+                }
             }
         }
 

@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.puede
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.modelClasses.Producto
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
@@ -115,9 +117,16 @@ private fun ProductoUnaColumna(
     onAtras: () -> Unit,
     apiladas: Boolean
 ) {
+    // `puede()` es @Composable y el bloque de una lista perezosa no lo es:
+    // el permiso se lee aqui, en el cuerpo de la pantalla, y la lista usa el
+    // booleano.
+    val puedeEditar = puede(Accion.EDITAR_INVENTARIO)
+
     Marco(barra = {
         BarraSuperior("Detalle de producto", onAtras = onAtras) {
-            BotonIcono(Iconos.Editar, "Editar producto", onEditar)
+            if (puedeEditar) {
+                BotonIcono(Iconos.Editar, "Editar producto", onEditar)
+            }
         }
     }) {
         item { EncabezadoProducto(producto) }
@@ -125,7 +134,9 @@ private fun ProductoUnaColumna(
         item { CabeceraReceta(onReceta) }
         item { ListaIngredientes(receta) }
         item { ResumenCosto(costo) }
-        item { BotonPrincipal("Registrar producción", onClick = onProducir) }
+        if (puedeEditar) {
+            item { BotonPrincipal("Registrar producción", onClick = onProducir) }
+        }
     }
 }
 
@@ -141,10 +152,17 @@ private fun ProductoDosColumnas(
     onReceta: () -> Unit,
     onAtras: () -> Unit
 ) {
+    // `puede()` es @Composable y el bloque de una lista perezosa no lo es:
+    // el permiso se lee aqui, en el cuerpo de la pantalla, y la lista usa el
+    // booleano.
+    val puedeEditar = puede(Accion.EDITAR_INVENTARIO)
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             BarraSuperior("Detalle de producto", onAtras = onAtras) {
-                BotonIcono(Iconos.Editar, "Editar producto", onEditar)
+                if (puedeEditar) {
+                    BotonIcono(Iconos.Editar, "Editar producto", onEditar)
+                }
             }
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = Margenes.xl),
@@ -156,7 +174,9 @@ private fun ProductoDosColumnas(
                 ) {
                     item { EncabezadoProducto(producto) }
                     item { CifrasProducto(producto, costo, receta.size, apiladas = false) }
-                    item { BotonPrincipal("Registrar producción", onClick = onProducir) }
+                    if (puedeEditar) {
+                        item { BotonPrincipal("Registrar producción", onClick = onProducir) }
+                    }
                 }
 
                 // La receta va dentro de una tarjeta y no suelta: en 604 de

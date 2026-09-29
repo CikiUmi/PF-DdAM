@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.ddam_a1.gestordeinventario.ui.puede
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.modelClasses.RegistroLog
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.FilaLista
@@ -51,6 +53,21 @@ fun PantallaConfiguracion(
 ) {
     var verHistorial by remember { mutableStateOf(false) }
 
+    // ============================================================
+    //  EL PERMISO SE LEE AQUI, NO DENTRO DE LA LISTA
+    //
+    //  `puede()` es @Composable, y el bloque de una lista perezosa NO lo es:
+    //  es un constructor de items que se ejecuta fuera de la composicion. Leer
+    //  el permiso dentro da "@Composable invocations can only happen from the
+    //  context of a @Composable function".
+    //
+    //  Se lee una vez en el cuerpo de la pantalla, que si es composable, y la
+    //  lista usa el booleano. Tambien es mas correcto: asi el valor es el
+    //  mismo para todos los items de una misma composicion.
+    // ============================================================
+    val puedeGestionarEquipo = puede(Accion.GESTIONAR_USUARIOS)
+    val puedeExportar = puede(Accion.EXPORTAR)
+
     Marco(barra = {
         BarraSuperior(
             "Configuración",
@@ -60,7 +77,7 @@ fun PantallaConfiguracion(
             onAtras = onAtras
         )
     }) {
-        itemCentrado {
+        if (puedeGestionarEquipo) itemCentrado {
             Grupo("Negocio") {
                 FilaTarjeta(
                     icono = Iconos.Equipo,
@@ -75,7 +92,7 @@ fun PantallaConfiguracion(
             }
         }
 
-        itemCentrado {
+        if (puedeExportar) itemCentrado {
             Grupo("Datos") {
                 FilaTarjeta(
                     icono = Iconos.Descargar,

@@ -1,6 +1,10 @@
 package com.ddam_a1.gestordeinventario.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ddam_a1.gestordeinventario.data.negocio.Permisos
+import com.ddam_a1.gestordeinventario.ui.LocalPermisos
+import com.ddam_a1.gestordeinventario.ui.ReglaDePermisos
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -108,6 +112,23 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
 
     val atras: () -> Unit = { navController.popBackStack() }
 
+    // ============================================================
+    //  LOS PERMISOS SE PONEN EN EL AIRE UNA SOLA VEZ
+    //
+    //  Aqui es el unico sitio de la app que sabe quien entro. Envolver el
+    //  NavHost deja la regla disponible para cualquier pantalla, por honda
+    //  que este, sin pasarla de parametro en parametro.
+    //
+    //  `usuarioActual` se recoge como estado, asi que al entrar y al salir el
+    //  proveedor cambia y todo lo de dentro se vuelve a pintar con los
+    //  permisos nuevos. Sin eso, quien cerrara sesion y entrara como empleado
+    //  seguiria viendo los botones del administrador.
+    // ============================================================
+    val usuario by sesionVm.usuarioActual.collectAsState()
+
+    CompositionLocalProvider(
+        LocalPermisos provides ReglaDePermisos { accion -> Permisos.puede(usuario, accion) }
+    ) {
     NavHost(
         navController = navController,
         startDestination = RUTA_LOGIN,
@@ -848,5 +869,6 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 onAtras = atras
             )
         }
+    }
     }
 }

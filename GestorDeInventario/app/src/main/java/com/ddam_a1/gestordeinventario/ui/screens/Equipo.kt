@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
+import com.ddam_a1.gestordeinventario.data.negocio.Permisos
 import com.ddam_a1.gestordeinventario.modelClasses.Usuario
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
@@ -234,13 +236,7 @@ internal fun inicialesDe(nombre: String): String {
 
 // ---------- PESTANA 2: PERMISOS ----------
 
-/** Lo que cada rol puede hacer hoy. Es la tabla que aplica `permisosDelRol`. */
-private val ACCIONES = listOf(
-    "registrar_venta" to "Registrar ventas",
-    "editar_inventario" to "Crear y editar inventario",
-    "ver_estadisticas" to "Ver rendimiento del negocio",
-    "exportar" to "Exportar datos"
-)
+
 
 @Composable
 private fun PanelPermisos() {
@@ -281,13 +277,12 @@ private fun PanelPermisos() {
                 .padding(Margenes.md),
             verticalArrangement = Arrangement.spacedBy(Margenes.xs)
         ) {
-            ACCIONES.forEach { (accion, texto) ->
-                val permitido = when (rol) {
-                    Rol.ADMINISTRADOR -> true
-                    Rol.ENCARGADO -> accion != "exportar"
-                    Rol.EMPLEADO -> accion == "registrar_venta"
-                }
-                FilaPermiso(texto, permitido, soloLectura = true) { }
+            // La lista y la regla salen de `Permisos`, que es lo que de
+            // verdad aplica la app. Antes esto era una copia escrita a mano
+            // que ya no coincidia: prometia al encargado todo menos exportar,
+            // cuando la regla real le da tres acciones.
+            Accion.entries.forEach { accion ->
+                FilaPermiso(accion.etiqueta, Permisos.puede(rol, accion), soloLectura = true) { }
             }
         }
 

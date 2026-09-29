@@ -2,6 +2,8 @@ package com.ddam_a1.gestordeinventario.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
+import com.ddam_a1.gestordeinventario.data.negocio.Permisos
 import com.ddam_a1.gestordeinventario.data.repos.SesionRepositorio
 import com.ddam_a1.gestordeinventario.modelClasses.enums.Rol
 import com.ddam_a1.gestordeinventario.modelClasses.Negocio
@@ -148,14 +150,16 @@ class SesionViewModel @Inject constructor(
         viewModelScope.launch { repo.elegirModo(equipo) }
     }
 
-    fun tienePermiso(usuario: Usuario, accion: String): Boolean = repo.tienePermiso(usuario, accion)
+    /**
+     * Lo que puede hacer quien esta usando la app ahora mismo.
+     *
+     * Acepta null: sin sesion no se sabe el rol y no se restringe nada. La
+     * regla completa, y el porque, estan en `Permisos`.
+     */
+    fun puede(accion: Accion): Boolean = Permisos.puede(_usuarioActual.value, accion)
 
-    /** Permisos del rol elegido, sin necesidad de un usuario de verdad. */
-    fun permisosDelRol(rol: Rol, accion: String): Boolean = when (rol) {
-        Rol.ADMINISTRADOR -> true
-        Rol.ENCARGADO -> accion in listOf("registrar_venta", "editar_inventario", "ver_estadisticas")
-        Rol.EMPLEADO -> accion == "registrar_venta"
-    }
+    /** Permisos del rol elegido, para la tabla de Equipo. */
+    fun permisosDelRol(rol: Rol, accion: Accion): Boolean = Permisos.puede(rol, accion)
 
     fun cerrarSesion() { _usuarioActual.value = null }
 }

@@ -34,6 +34,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ddam_a1.gestordeinventario.ui.puede
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
 import com.ddam_a1.gestordeinventario.modelClasses.LoteMaterial
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.ui.cant
@@ -238,13 +240,29 @@ private fun DetalleUnaColumna(
     onRegistrarEntrada: () -> Unit,
     onPedirBajaDeLote: (LoteMaterial) -> Unit
 ) {
+    // ============================================================
+    //  EL PERMISO SE LEE AQUI, NO DENTRO DE LA LISTA
+    //
+    //  `puede()` es @Composable, y el bloque de una lista perezosa NO lo es:
+    //  es un constructor de items que se ejecuta fuera de la composicion. Leer
+    //  el permiso dentro da "@Composable invocations can only happen from the
+    //  context of a @Composable function".
+    //
+    //  Se lee una vez en el cuerpo de la pantalla, que si es composable, y la
+    //  lista usa el booleano. Tambien es mas correcto: asi el valor es el
+    //  mismo para todos los items de una misma composicion.
+    // ============================================================
+    val puedeEditar = puede(Accion.EDITAR_INVENTARIO)
+
     Marco(barra = {
         BarraSuperior(material.nombre, onAtras = onAtras) {
-            AccionesBarra(onEditar, onEliminar)
+            if (puedeEditar) AccionesBarra(onEditar, onEliminar)
         }
     }) {
         item { TarjetaMaterial(material, bajo) }
-        item { BotonPrincipal("Registrar entrada", onClick = onRegistrarEntrada) }
+        if (puedeEditar) {
+            item { BotonPrincipal("Registrar entrada", onClick = onRegistrarEntrada) }
+        }
 
         if (material.lotes.isNotEmpty()) {
             item { TituloSeccion("Lotes") }
@@ -275,10 +293,12 @@ private fun DetalleDosColumnas(
     onRegistrarEntrada: () -> Unit,
     onPedirBajaDeLote: (LoteMaterial) -> Unit
 ) {
+    val puedeEditar = puede(Accion.EDITAR_INVENTARIO)
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             BarraSuperior(material.nombre, onAtras = onAtras) {
-                AccionesBarra(onEditar, onEliminar)
+                if (puedeEditar) AccionesBarra(onEditar, onEliminar)
             }
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = Margenes.xl),
@@ -292,7 +312,9 @@ private fun DetalleDosColumnas(
                     verticalArrangement = Arrangement.spacedBy(Margenes.lg)
                 ) {
                     item { TarjetaMaterial(material, bajo) }
-                    item { BotonPrincipal("Registrar entrada", onClick = onRegistrarEntrada) }
+                    if (puedeEditar) {
+                        item { BotonPrincipal("Registrar entrada", onClick = onRegistrarEntrada) }
+                    }
                     if (material.lotes.isNotEmpty()) {
                         item { TituloSeccion("Lotes disponibles") }
                         items(material.lotes.size) { i ->
@@ -438,6 +460,7 @@ private fun FilaLote(
     diasAviso: Int,
     onPedirBaja: (LoteMaterial) -> Unit
 ) {
+    val puedeDarDeBaja = puede(Accion.EDITAR_INVENTARIO)
     val estado = rememberSwipeToDismissBoxState(
         // Se devuelve SIEMPRE false a proposito: el gesto no confirma el
         // borrado, solo lo propone. La fila regresa a su sitio y el dialogo
@@ -452,6 +475,9 @@ private fun FilaLote(
     SwipeToDismissBox(
         state = estado,
         enableDismissFromStartToEnd = false,
+        // Sin permiso la fila ni siquiera se arrastra: dejarla moverse para
+        // despues no hacer nada se siente como que la app esta rota.
+        gesturesEnabled = puedeDarDeBaja,
         backgroundContent = {
             Row(
                 Modifier
@@ -470,7 +496,7 @@ private fun FilaLote(
             }
         }
     ) {
-        ContenidoLote(lote, unidad, diasAviso, onPedirBaja)
+        ContenidoLote(lote, unidad, diasAviso, puedeDarDeBaja, onPedirBaja)
     }
 }
 
@@ -479,6 +505,8 @@ private fun ContenidoLote(
     lote: LoteMaterial,
     unidad: String,
     diasAviso: Int,
+    /** Lo decide `FilaLote`, que es quien lee el permiso. */
+    puedeDarDeBaja: Boolean,
     onPedirBaja: (LoteMaterial) -> Unit
 ) {
     val dias = diasHasta(lote.caducidad)
@@ -495,9 +523,10 @@ private fun ContenidoLote(
             // El deslizado no existe para quien navega con lector de pantalla
             // o con teclado: esta accion lo deja al alcance de los dos.
             .semantics(mergeDescendants = true) {
-                customActions = listOf(
-                    CustomAccessibilityAction("Eliminar lote") { onPedirBaja(lote); true }
-                )
+                customActions =
+                    if (puedeDarDeBaja)
+                        listOf(CustomAccessibilityAction("Eliminar lote") { onPedirBaja(lote); true })
+                    else emptyList()
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.modelClasses.Material
 import com.ddam_a1.gestordeinventario.ui.cant
 import com.ddam_a1.gestordeinventario.ui.components.BarraBusqueda
+import com.ddam_a1.gestordeinventario.data.negocio.Accion
+import com.ddam_a1.gestordeinventario.ui.puede
 import com.ddam_a1.gestordeinventario.ui.components.BarraInferior
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.BotonFlotante
@@ -131,7 +133,12 @@ private fun InventarioLista(
     Marco(
         barra = { BarraSuperior("Inventario") },
         pie = { BarraInferior(DestinoBarra.INVENTARIO, onDestino) },
-        flotante = { BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial) }
+        // Sin permiso de editar el inventario, el boton no se pinta.
+        flotante = {
+            if (puede(Accion.EDITAR_INVENTARIO)) {
+                BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial)
+            }
+        }
     ) {
         item { BarraBusqueda(texto, "Buscar material...", onTexto) }
         item { FilaFiltros(filtro, onFiltro) }
@@ -225,7 +232,11 @@ private fun InventarioTabla(
                     Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 40.dp, bottom = Margenes.xl)
-                ) { BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial) }
+                ) {
+                    if (puede(Accion.EDITAR_INVENTARIO)) {
+                        BotonFlotante(Iconos.Agregar, "Nuevo material", onClick = onNuevoMaterial)
+                    }
+                }
             }
         }
     }
