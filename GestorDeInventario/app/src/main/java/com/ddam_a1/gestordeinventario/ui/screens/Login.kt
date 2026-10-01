@@ -59,7 +59,7 @@ fun PantallaLogin(
                 verticalArrangement = Arrangement.spacedBy(Margenes.xs)
             ) {
                 Text(
-                    "Gestor de Inventario",
+                    "StackPile",
                     style = MaterialTheme.typography.headlineSmall,   // Lora SemiBold 24
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() }
