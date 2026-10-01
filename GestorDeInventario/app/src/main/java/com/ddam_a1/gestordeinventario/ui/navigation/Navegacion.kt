@@ -817,15 +817,41 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val materiales by inventarioVm.materiales.collectAsState()
             val productos by inventarioVm.productos.collectAsState()
             var rutaGuardada by remember { mutableStateOf<String?>(null) }
-            // Las tres rutas, para poder volver a compartirlas sin regenerar.
+            // Las rutas de todos los archivos, para poder volver a compartirlas
+            // sin regenerarlos.
             var rutasExportadas by remember { mutableStateOf(emptyList<String>()) }
             // El contexto de la pantalla es la Activity: la hoja de compartir
             // se abre dentro de la misma tarea y al cerrarla se vuelve aqui.
             val contexto = LocalContext.current
 
-            // Tres archivos y no uno: el Figma los ensena asi y, sobre todo,
-            // exportar solo las ventas dejaba fuera justo lo que cuesta mas
-            // trabajo volver a teclear, que es el inventario.
+            // ============================================================
+            //  SEIS ARCHIVOS, UNO POR TABLA
+            //
+            //  Tres son las entidades (productos, inventario, ventas) y tres
+            //  son las RELACIONES. Esas tres son las que importan aqui:
+            //
+            //    recetas.csv ...... la tabla puente producto <-> material.
+            //                       Es muchos-a-muchos, asi que no cabe como
+            //                       columna de ninguno de los dos.
+            //    venta_items.csv .. la tabla puente venta <-> producto, con el
+            //                       precio y el costo CONGELADOS del dia de la
+            //                       venta: si manana sube el precio, el
+            //                       historico no se mueve.
+            //    lotes.csv ........ uno-a-muchos con material, pero se perdia
+            //                       igual, y con el se perdian las caducidades.
+            //
+            //  Sin estos tres, `ventas.csv` dice que hubo una venta de $350 y
+            //  no de que, y `productos.csv` dice que existe un producto sin
+            //  decir de que esta hecho. El catalogo se recuperaba, el negocio no.
+            //
+            //  Cada renglon de una tabla puente lleva las DOS llaves foraneas
+            //  —asi se exporta un muchos-a-muchos— y ademas el nombre. El
+            //  nombre es dato repetido, si; va porque quien abre esto en Excel
+            //  necesita leer "Harina" y no un UUID.
+            // ============================================================
+            val nombreDeProducto = productos.associate { it.id to it.nombre }
+            val nombreDeMaterial = materiales.associate { it.id to it.nombre }
+
             val ventasCsv = listOf("id", "fecha", "hora", "total", "cancelada") to
                 ventas.map { v ->
                     listOf(v.id, v.fecha, v.hora, v.total.toString(), v.cancelada.toString())
@@ -846,12 +872,49 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                     p.stockDisponible.toString(), p.stockMinimo.toString()
                 )
             }
+            // `productos` ya trae su receta y `materiales` ya traen sus lotes:
+            // el repositorio los arma con un combine de los dos DAO. No hace
+            // falta consultar nada nuevo para esto.
+            val recetasCsv = listOf(
+                "producto_id", "producto", "material_id", "material", "cantidad_usada"
+            ) to productos.flatMap { p ->
+                p.receta.map { ingrediente ->
+                    listOf(
+                        p.id, p.nombre, ingrediente.materialId,
+                        nombreDeMaterial[ingrediente.materialId] ?: "",
+                        ingrediente.cantidadUsada.toString()
+                    )
+                }
+            }
+            val lotesCsv = listOf(
+                "id", "material_id", "material", "caducidad", "cantidad"
+            ) to materiales.flatMap { m ->
+                m.lotes.map { lote ->
+                    listOf(lote.id, m.id, m.nombre, lote.caducidad, lote.cantidad.toString())
+                }
+            }
+            val itemsCsv = listOf(
+                "venta_id", "fecha", "producto_id", "producto", "cantidad",
+                "precio_unitario", "costo_unitario_produccion"
+            ) to ventas.flatMap { v ->
+                v.items.map { item ->
+                    listOf(
+                        v.id, v.fecha, item.productoId,
+                        nombreDeProducto[item.productoId] ?: "",
+                        item.cantidad.toString(), item.precioUnitario.toString(),
+                        item.costoUnitarioProduccion.toString()
+                    )
+                }
+            }
 
             PantallaExportar(
                 archivos = listOf(
                     ArchivoExportable("productos.csv", productos.size),
                     ArchivoExportable("inventario.csv", materiales.size),
-                    ArchivoExportable("ventas.csv", ventas.size)
+                    ArchivoExportable("ventas.csv", ventas.size),
+                    ArchivoExportable("recetas.csv", recetasCsv.second.size),
+                    ArchivoExportable("lotes.csv", lotesCsv.second.size),
+                    ArchivoExportable("venta_items.csv", itemsCsv.second.size)
                 ),
                 rutaGuardada = rutaGuardada,
                 onExportar = {
@@ -865,11 +928,20 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                             ),
                             inventarioVm.exportarACSV(
                                 "ventas.csv", ventasCsv.first, ventasCsv.second
+                            ),
+                            inventarioVm.exportarACSV(
+                                "recetas.csv", recetasCsv.first, recetasCsv.second
+                            ),
+                            inventarioVm.exportarACSV(
+                                "lotes.csv", lotesCsv.first, lotesCsv.second
+                            ),
+                            inventarioVm.exportarACSV(
+                                "venta_items.csv", itemsCsv.first, itemsCsv.second
                             )
                         )
                         rutasExportadas = rutas
-                        // La ruta que se ensena es la del ultimo: los tres
-                        // salen a la misma carpeta, asi que con una basta.
+                        // La ruta que se ensena es la del ultimo: todos salen a
+                        // la misma carpeta, asi que con una basta.
                         rutaGuardada = rutas.last()
                         inventarioVm.registrarLog(
                             hoy(), "manual", "Exportación de datos generada"
