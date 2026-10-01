@@ -57,19 +57,51 @@ fun diasHasta(fecha: String, desde: String = hoy()): Int? {
 //  el texto se sale del anillo y se encima con el arco.
 //
 //  Aqui se pierde precision A PROPOSITO, y solo donde el hueco manda: la cifra
-//  exacta sigue estando al lado, en la leyenda. Redondear al millar es lo que
-//  hace cualquiera al leer en voz alta: "mil quinientos y algo".
+//  exacta sigue estando al lado, en la leyenda.
+//
+//  SE TRUNCA, NO SE REDONDEA.
+//
+//  Son dinero. $39,996 redondeado da "$40k", que son 4 pesos de distancia y es
+//  mas exacto que "$39.9k"; pero le dice al usuario que movio CUARENTA MIL
+//  cuando no los movio, y en una cifra de dinero decir de mas es peor error
+//  que decir de menos. Truncando, el numero corto nunca pasa del real: es
+//  siempre "por lo menos esto".
+//
+//  Se trunca a la precision que se va a ENSENAR, no al entero: en la rama de
+//  los miles con un decimal, 1,571.09 tiene que quedar "1.5k" y no "1.0k".
 // ============================================================
 
 fun dineroCorto(v: Double): String {
     val signo = if (v < 0) "-" else ""
     val abs = kotlin.math.abs(v)
     return when {
-        abs >= 1_000_000 -> signo + "$" + String.format(Locale.getDefault(), "%.1fM", abs / 1_000_000)
-        abs >= 10_000 -> signo + "$" + String.format(Locale.getDefault(), "%.0fk", abs / 1_000)
-        abs >= 1_000 -> signo + "$" + String.format(Locale.getDefault(), "%.1fk", abs / 1_000)
-        else -> signo + "$" + String.format(Locale.getDefault(), "%.0f", abs)
+        abs >= 1_000_000 ->
+            signo + "$" + String.format(Locale.getDefault(), "%.1fM", truncar(abs / 1_000_000, 1))
+        abs >= 10_000 ->
+            signo + "$" + String.format(Locale.getDefault(), "%.0fk", truncar(abs / 1_000, 0))
+        abs >= 1_000 ->
+            signo + "$" + String.format(Locale.getDefault(), "%.1fk", truncar(abs / 1_000, 1))
+        else ->
+            signo + "$" + String.format(Locale.getDefault(), "%.0f", truncar(abs, 0))
     }
+}
+
+/**
+ * Corta los decimales de sobra en vez de redondearlos.
+ *
+ * `floor` y no `toInt()` ni `trunc`: el valor que llega aqui ya es positivo
+ * —el signo se saco antes—, asi que los tres hacen lo mismo, pero `floor`
+ * dice en una palabra que va hacia abajo y no depende de que el signo se
+ * siga sacando arriba.
+ *
+ * El `+ 1e-9` es por el punto flotante: 0.7 guardado en Double puede ser
+ * 0.6999999999999, y sin la holgura un "0.7" exacto se truncaria a "0.6".
+ * Nueve ceros estan muy por debajo de cualquier centavo y muy por encima del
+ * error de la division.
+ */
+private fun truncar(valor: Double, decimales: Int): Double {
+    val factor = Math.pow(10.0, decimales.toDouble())
+    return kotlin.math.floor(valor * factor + 1e-9) / factor
 }
 
 // ============================================================
