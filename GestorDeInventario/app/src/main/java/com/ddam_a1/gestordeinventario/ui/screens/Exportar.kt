@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ddam_a1.gestordeinventario.ui.components.BannerAviso
 import com.ddam_a1.gestordeinventario.ui.components.BotonPrincipal
+import com.ddam_a1.gestordeinventario.ui.components.BotonSecundario
 import com.ddam_a1.gestordeinventario.ui.components.BarraSuperior
 import com.ddam_a1.gestordeinventario.ui.components.Iconos
 import com.ddam_a1.gestordeinventario.ui.components.Pastilla
@@ -54,6 +55,8 @@ fun PantallaExportar(
     archivos: List<ArchivoExportable>,
     rutaGuardada: String?,
     onExportar: () -> Unit,
+    /** Vuelve a abrir la hoja de compartir con los archivos ya generados. */
+    onCompartir: () -> Unit,
     onAtras: () -> Unit
 ) {
     val total = archivos.sumOf { it.registros }
@@ -113,11 +116,30 @@ fun PantallaExportar(
                         }
 
                         if (rutaGuardada != null) {
-                            BannerAviso("Guardado en " + rutaGuardada)
+                            // ============================================================
+                            //  LA RUTA SE ENSENA, PERO NO ES LA RESPUESTA
+                            //
+                            //  Desde Android 11 ningun gestor de archivos entra
+                            //  a `Android/data`, que es donde escribe la app. La
+                            //  ruta sirve para saber que se hizo; para LLEGAR al
+                            //  archivo esta el boton de compartir.
+                            //
+                            //  Por eso el texto no dice solo "Guardado en": una
+                            //  ruta que el usuario no puede abrir, presentada
+                            //  como si pudiera, es peor que no decir nada.
+                            // ============================================================
+                            BannerAviso(
+                                "Archivos generados. Use \"Compartir\" para enviarlos " +
+                                    "a Drive, al correo o a Archivos."
+                            )
+                            BotonSecundario("Compartir archivos", onClick = onCompartir)
                         }
 
                         BotonPrincipal(
-                            "Exportar",
+                            // Exportar y compartir son un solo gesto: el boton
+                            // lo dice para que la hoja que aparece despues no
+                            // se sienta como que la app hizo algo de mas.
+                            if (rutaGuardada == null) "Exportar y compartir" else "Exportar otra vez",
                             // Exportar cero renglones escribe archivos con solo
                             // los encabezados: no falla, pero tampoco sirve.
                             habilitado = total > 0,

@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.ddam_a1.gestordeinventario.data.negocio.Permisos
 import com.ddam_a1.gestordeinventario.ui.LocalPermisos
 import com.ddam_a1.gestordeinventario.ui.ReglaDePermisos
+import com.ddam_a1.gestordeinventario.ui.compartirCsv
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -816,6 +817,11 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
             val materiales by inventarioVm.materiales.collectAsState()
             val productos by inventarioVm.productos.collectAsState()
             var rutaGuardada by remember { mutableStateOf<String?>(null) }
+            // Las tres rutas, para poder volver a compartirlas sin regenerar.
+            var rutasExportadas by remember { mutableStateOf(emptyList<String>()) }
+            // El contexto de la pantalla es la Activity: la hoja de compartir
+            // se abre dentro de la misma tarea y al cerrarla se vuelve aqui.
+            val contexto = LocalContext.current
 
             // Tres archivos y no uno: el Figma los ensena asi y, sobre todo,
             // exportar solo las ventas dejaba fuera justo lo que cuesta mas
@@ -850,22 +856,31 @@ fun GestorNavHost(modifier: Modifier = Modifier) {
                 rutaGuardada = rutaGuardada,
                 onExportar = {
                     scope.launch {
-                        inventarioVm.exportarACSV(
-                            "productos.csv", productosCsv.first, productosCsv.second
+                        val rutas = listOf(
+                            inventarioVm.exportarACSV(
+                                "productos.csv", productosCsv.first, productosCsv.second
+                            ),
+                            inventarioVm.exportarACSV(
+                                "inventario.csv", materialesCsv.first, materialesCsv.second
+                            ),
+                            inventarioVm.exportarACSV(
+                                "ventas.csv", ventasCsv.first, ventasCsv.second
+                            )
                         )
-                        inventarioVm.exportarACSV(
-                            "inventario.csv", materialesCsv.first, materialesCsv.second
-                        )
+                        rutasExportadas = rutas
                         // La ruta que se ensena es la del ultimo: los tres
                         // salen a la misma carpeta, asi que con una basta.
-                        rutaGuardada = inventarioVm.exportarACSV(
-                            "ventas.csv", ventasCsv.first, ventasCsv.second
-                        )
+                        rutaGuardada = rutas.last()
                         inventarioVm.registrarLog(
                             hoy(), "manual", "Exportación de datos generada"
                         )
+                        // La hoja se abre SOLA al terminar: escribir el archivo
+                        // sin entregarlo es la mitad del trabajo, y la carpeta
+                        // donde queda no se puede abrir desde el telefono.
+                        compartirCsv(contexto, rutas)
                     }
                 },
+                onCompartir = { compartirCsv(contexto, rutasExportadas) },
                 onAtras = atras
             )
         }
